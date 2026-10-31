@@ -81,9 +81,19 @@ function heroStart(h){
   if(l.length>1)tm=setInterval(()=>{k=(k+1)%l.length;heroShow(l[k],k)},15000)
 }
 
+const defaultInstagram='https://www.instagram.com/remal.hotel/';
+const instagramURL=value=>{
+  try{const u=new URL(value);return u.protocol==='https:'&&['instagram.com','www.instagram.com'].includes(u.hostname)&&!u.username&&!u.password?u.href:''}catch{return ''}
+};
+function paintInstagram(){
+  const link=$('#hotel-instagram'),url=instagramURL(cfg.instagram===undefined?defaultInstagram:cfg.instagram);
+  link.hidden=!url;if(url)link.href=url;
+  $('#instagram-label').textContent=({en:'Follow our moments',fr:'Suivez nos moments',ar:'تابع لحظاتنا',hi:'हमारे पलों से जुड़ें',zh:'关注我们的精彩时刻'})[lang];
+}
 /* ---------- guest site ---------- */
 function paint(){
   const t=L[lang],all=cat==='all';
+  paintInstagram();
   document.querySelectorAll('[data-i]').forEach(e=>{if(e.hasAttribute('data-split'))split(e,SLOGAN);else e.textContent=t[e.dataset.i]});
   $('#ibd').textContent=dp?t.instD:t.instI;
   $('#lg').innerHTML=LG.map(l=>`<button class='${l===lang?'on':''}' data-l='${l}'>${LN[l]}</button>`).join('');
@@ -284,6 +294,7 @@ async function cfgLoad(){
   const {data}=await S.from('site_settings').select('*'),m={};
   (data||[]).forEach(r=>{m[r.key]=r.value});
   cfg=m;
+  $('#instagram-url').value=m.instagram===undefined?defaultInstagram:m.instagram;
   $('#wa').value=m.whatsapp||'';$('#ph').value=m.phone||'';
   CT.forEach(c=>['whatsapp','phone'].forEach(k=>{$('#contact_'+c+'_'+k).value=m[c+'_'+k]||''}))
 }
@@ -292,15 +303,19 @@ $('#ss').onclick=async()=>{
   const rows=[{key:'whatsapp',value:$('#wa').value.trim(),updated_at:n},{key:'phone',value:$('#ph').value.trim(),updated_at:n}];
   CT.forEach(c=>['whatsapp','phone'].forEach(k=>rows.push({key:c+'_'+k,value:$('#contact_'+c+'_'+k).value.trim(),updated_at:n})));
   for(const r of rows){
-    const v=r.value.replace(/[\\s().-]/g,'');
-    if(v&&!/^\\+?[1-9]\\d{6,14}$/.test(v)){message.textContent='Use an international number with country code (e.g. +971501234567): '+r.key;return}
+    const v=r.value.replace(/[\s().-]/g,'');
+    if(v&&!/^\+?[1-9]\d{6,14}$/.test(v)){message.textContent='Use an international number with country code (e.g. +971501234567): '+r.key;return}
     r.value=v;
   }
+  const instagram=$('#instagram-url').value.trim();
+  if(instagram&&!instagramURL(instagram)){message.textContent='Enter a valid https://www.instagram.com/ link.';return}
+  rows.push({key:'instagram',value:instagram?instagramURL(instagram):'',updated_at:n});
   button.disabled=true;message.textContent='Saving…';
   try{
     const {error}=await S.from('site_settings').upsert(rows,{onConflict:'key'});if(error)throw error;
     rows.forEach(r=>{cfg[r.key]=r.value});
-    message.textContent='Contacts saved ✓';
+    paintInstagram();
+    message.textContent='Settings saved ✓';
   }catch(e){message.textContent=e.message||'Could not save. Please try again.'}
   finally{button.disabled=false}
 };

@@ -267,3 +267,11 @@ label.note{display:grid;gap:.3rem}
 }
 @media(max-width:700px){.card .ct{padding:1.3rem}.grid{gap:1.3rem}.card .ct h3{font-size:2.1rem}.box{border-radius:18px 18px 0 0}}
 @media(prefers-reduced-motion:reduce){.card,.card:hover,.card .m img,.card:hover .m img,.card .mo i{transform:none!important;transition:none!important}}
+
+/* Hotel Instagram footer link */
+.hotel-instagram{display:inline-flex;align-items:center;gap:1rem;margin:1.6rem auto .6rem;padding:1rem 1.4rem;color:var(--g2);text-decoration:none;border:1px solid #d4af3740;border-radius:12px;background:#d4af3708;transition:background .3s,border-color .3s;text-align:start}
+.hotel-instagram span span{display:block;font-size:.75rem;color:var(--mut)}
+.hotel-instagram strong{display:block;font-size:.9rem;font-weight:500;letter-spacing:.08em}
+.hotel-instagram:hover{background:#d4af3718;border-color:var(--gold)}
+.hotel-instagram:focus-visible{outline:2px solid var(--g2);outline-offset:4px}
+.hotel-instagram[hidden]{display:none}
