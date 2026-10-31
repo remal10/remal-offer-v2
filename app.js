@@ -45,9 +45,10 @@ const left=o=>o.valid_until?Math.round((new Date(o.valid_until+'T00:00:00')-new 
 const alive=o=>{const n=left(o);return n===null||n>=0};
 const urg=(o,t)=>{const n=left(o);return n===null||n>7?'':`<span class='ug'><b></b>${esc(n<=0?t.last:t.ends.replace('{n}',n))}</span>`};
 const pr=o=>o.price?`<div class='pr'><span class='price'>${esc(o.price)}</span>${o.old_price?`<s>${esc(o.old_price)}</s>`:''}</div>`:'';
+const offerLabel=()=>({"en":"View offer","fr":"Voir l’offre","ar":"عرض التفاصيل","hi":"ऑफ़र देखें","zh":"查看优惠"})[lang];
 const cardHTML=(o,t,i)=>{
   const x=tr(o),b=BD[o.badge];
-  return `<div class='rv${o.featured?' sp':''}' style='transition-delay:${i%3*120}ms'><div class='card' data-id='${o.id}'><div class='m'>${md(o)}</div>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<div class='ct'><small>${esc(t[o.category])}</small><h3>${esc(x.title)}</h3>${x.tagline?`<p class='tg'>${esc(x.tagline)}</p>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<span class='mo'>${esc(t.cta)} <i>→</i></span></div></div></div>`
+  return `<div class='rv${o.featured?' sp':''}' style='transition-delay:${i%3*120}ms'><div class='card${o.media_path?'':' no-media'}' data-id='${esc(o.id)}' role='button' tabindex='0' aria-haspopup='dialog' aria-label='${esc(offerLabel()+": "+(x.title||""))}'><div class='m'>${md(o)}</div>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<div class='ct'><small>${esc(t[o.category])}</small><h3>${esc(x.title)}</h3>${x.tagline?`<p class='tg'>${esc(x.tagline)}</p>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<span class='mo'>${esc(offerLabel())} <i aria-hidden='true'>↗</i></span></div></div></div>`
 };
 const cta=(x,t)=>{
   const w=(cfg.whatsapp||'').replace(/[^0-9]/g,''),p=(cfg.phone||'').replace(/[^0-9+]/g,'');
@@ -108,6 +109,10 @@ async function load(){
   paint()
 }
 const closeM=()=>{$('#md').classList.remove('on');document.body.style.overflow=''};
+document.addEventListener('keydown',e=>{
+  const card=e.target.closest('.card');
+  if(card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();card.click()}
+});
 document.addEventListener('click',e=>{
   const l=e.target.closest('[data-l]'),c=e.target.closest('[data-c]'),k=e.target.closest('.card');
   if(l){lang=l.dataset.l;localStorage.setItem('lang',lang);document.body.classList.add('sk');dir();paint()}
