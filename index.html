@@ -134,12 +134,17 @@
       <div id="ls"></div>
     </div>
 
-    <div class="pnl" id="p-set"><div class="f">
+    <div class="pnl" id="p-set"><div class="f">\n<h3>Reservation contacts</h3><p class="note">Add the public booking numbers guests should use for each section. If a field is empty, its reception number below is used.</p><h3>Reception — fallback contacts</h3>
       <label class="note">WhatsApp number for reservations (country code, digits only)<input id="wa" placeholder="e.g. 971501234567"></label>
       <label class="note">Reception phone (shown as a Call button)<input id="ph" placeholder="e.g. +97121234567"></label>
-      <div class="row"><button class="btn solid" id="ss">Save</button></div>
+      <fieldset class="f" style="margin:0"><legend class="lb">Restaurant</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_restaurant_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_restaurant_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
+<fieldset class="f" style="margin:0"><legend class="lb">Pool</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_pool_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_pool_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
+<fieldset class="f" style="margin:0"><legend class="lb">Bar</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_bar_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_bar_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
+<fieldset class="f" style="margin:0"><legend class="lb">Spa</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_spa_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_spa_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
+<fieldset class="f" style="margin:0"><legend class="lb">Services</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_services_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_services_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
+<div class="row"><button class="btn solid" id="ss">Save contacts</button></div>
       <p class="msg" id="sm"></p>
-      <p class="note">These contacts appear on every offer so guests can reserve in one tap. Leave both empty to show “Ask our reception team” instead.</p>
+      <p class="note">Each offer uses its section’s contacts. Empty section fields use the reception contact; if neither is available, guests are asked to contact reception.</p>
     </div></div>
   </div>
 </section>

@@ -50,10 +50,13 @@ const cardHTML=(o,t,i)=>{
   const x=tr(o),b=BD[o.badge];
   return `<div class='rv${o.featured?' sp':''}' style='transition-delay:${i%3*120}ms'><div class='card${o.media_path?'':' no-media'}' data-id='${esc(o.id)}' role='button' tabindex='0' aria-haspopup='dialog' aria-label='${esc(offerLabel()+": "+(x.title||""))}'><div class='m'>${md(o)}</div>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<div class='ct'><small>${esc(t[o.category])}</small><h3>${esc(x.title)}</h3>${x.tagline?`<p class='tg'>${esc(x.tagline)}</p>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<span class='mo'>${esc(offerLabel())} <i aria-hidden='true'>↗</i></span></div></div></div>`
 };
-const cta=(x,t)=>{
-  const w=(cfg.whatsapp||'').replace(/[^0-9]/g,''),p=(cfg.phone||'').replace(/[^0-9+]/g,'');
+const sectionContact=(category,key)=>cfg[category+'_'+key]||cfg[key]||'';
+const cta=(x,t,category)=>{
+  const w=sectionContact(category,'whatsapp').replace(/[^0-9]/g,''),p=sectionContact(category,'phone').replace(/[^0-9+]/g,'');
+  const direct=!!cfg[category+'_phone'];
+  const callLabel=direct?({en:'Call the team',fr:'Appeler le responsable',ar:'اتصل بالفريق',hi:'टीम को कॉल करें',zh:'致电服务团队'})[lang]:t.call;
   if(!w&&!p)return `<div class='ask'>${esc(t.ask)}</div>`;
-  return `<div class='cta'>${w?`<a class='btn solid' target='_blank' rel='noopener' href='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}'>${esc(t.wa)}</a>`:''}${p?`<a class='btn' href='tel:${p}'>${esc(t.call)}</a>`:''}</div>`
+  return `<div class='cta'>${w?`<a class='btn solid' target='_blank' rel='noopener' href='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}'>${esc(t.wa)}</a>`:''}${p?`<a class='btn' href='tel:${p}'>${esc(callLabel)}</a>`:''}</div>`
 };
 
 /* ---------- hero rotation ---------- */
@@ -119,7 +122,7 @@ document.addEventListener('click',e=>{
   else if(c){location.hash=c.dataset.c==='all'?'offres':'s-'+c.dataset.c}
   else if(k){
     const o=offers.find(x=>x.id===k.dataset.id),x=tr(o),t=L[lang],b=BD[o.badge];
-    $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description)}</p>${cta(x,t)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
+    $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description)}</p>${cta(x,t,o.category)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
     $('#md').classList.add('on');document.body.style.overflow='hidden';slow()
   }
   else if(['md','xc','xc2'].includes(e.target.id))closeM()
@@ -280,12 +283,26 @@ $('#fm').onsubmit=async e=>{
 async function cfgLoad(){
   const {data}=await S.from('site_settings').select('*'),m={};
   (data||[]).forEach(r=>{m[r.key]=r.value});
-  $('#wa').value=m.whatsapp||'';$('#ph').value=m.phone||''
+  cfg=m;
+  $('#wa').value=m.whatsapp||'';$('#ph').value=m.phone||'';
+  CT.forEach(c=>['whatsapp','phone'].forEach(k=>{$('#contact_'+c+'_'+k).value=m[c+'_'+k]||''}))
 }
 $('#ss').onclick=async()=>{
-  const n=new Date().toISOString();
-  const r=await S.from('site_settings').upsert([{key:'whatsapp',value:$('#wa').value.trim(),updated_at:n},{key:'phone',value:$('#ph').value.trim(),updated_at:n}]);
-  $('#sm').textContent=r.error?r.error.message:'Saved ✓'
+  const button=$('#ss'),message=$('#sm'),n=new Date().toISOString();
+  const rows=[{key:'whatsapp',value:$('#wa').value.trim(),updated_at:n},{key:'phone',value:$('#ph').value.trim(),updated_at:n}];
+  CT.forEach(c=>['whatsapp','phone'].forEach(k=>rows.push({key:c+'_'+k,value:$('#contact_'+c+'_'+k).value.trim(),updated_at:n})));
+  for(const r of rows){
+    const v=r.value.replace(/[\\s().-]/g,'');
+    if(v&&!/^\\+?[1-9]\\d{6,14}$/.test(v)){message.textContent='Use an international number with country code (e.g. +971501234567): '+r.key;return}
+    r.value=v;
+  }
+  button.disabled=true;message.textContent='Saving…';
+  try{
+    const {error}=await S.from('site_settings').upsert(rows,{onConflict:'key'});if(error)throw error;
+    rows.forEach(r=>{cfg[r.key]=r.value});
+    message.textContent='Contacts saved ✓';
+  }catch(e){message.textContent=e.message||'Could not save. Please try again.'}
+  finally{button.disabled=false}
 };
 
 /* sign in */
