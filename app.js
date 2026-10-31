@@ -64,21 +64,34 @@ const io='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEac
 const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone,
 ios=/iphone|ipad|ipod/i.test(navigator.userAgent),
 lay=[$('#b0'),$('#b1')],
-pg=k=>document.querySelectorAll('#pg i').forEach((s,j)=>{s.className=j<k?'d':'';if(j===k){void s.offsetWidth;s.className='a'}});
+pg=k=>document.querySelectorAll('#pg [data-slide]').forEach((s,j)=>{s.classList.toggle('a',j===k);s.setAttribute('aria-pressed',String(j===k))});
+let heroRequest=0;
 function heroShow(u,k){
-  const i=new Image();
-  i.onload=()=>{const n=1-cur,e=lay[n];e.className='bg';void e.offsetWidth;e.style.backgroundImage=`url('${u}')`;e.className='bg on k'+(kv++%4);lay[cur].classList.remove('on');cur=n;pg(k)};
+  const request=++heroRequest,i=new Image();
+  i.onload=()=>{if(request!==heroRequest)return;const n=1-cur,e=lay[n];e.className='bg';void e.offsetWidth;e.style.backgroundImage='url('+JSON.stringify(u)+')';e.className='bg on k'+(kv++%4);lay[cur].classList.remove('on');cur=n;pg(k)};
   i.src=u
 }
 function heroStart(h){
-  const l=h.length?h.map(x=>mu(x.media_path)):[HERO0];
-  $('#pg').innerHTML=l.length>1?l.map(()=>'<i></i>').join(''):'';
-  let k=parseInt(localStorage.getItem('hi'));
+  const l=h.length?h.map(x=>mu(x.media_path)):[HERO0],reduced=matchMedia('(prefers-reduced-motion: reduce)');
+  let k=parseInt(localStorage.getItem('hi')),paused=reduced.matches;
   k=isNaN(k)?0:(k+1)%l.length;
-  localStorage.setItem('hi',k);
-  heroShow(l[k],k);
-  clearInterval(tm);
-  if(l.length>1)tm=setInterval(()=>{k=(k+1)%l.length;heroShow(l[k],k)},15000)
+  const labels={en:['Show photo','Pause slideshow','Play slideshow'],fr:['Afficher la photo','Mettre le diaporama en pause','Lire le diaporama'],ar:['عرض الصورة','إيقاف عرض الصور مؤقتًا','تشغيل عرض الصور'],hi:['फ़ोटो दिखाएँ','स्लाइडशो रोकें','स्लाइडशो चलाएँ'],zh:['显示照片','暂停幻灯片','播放幻灯片']};
+  function controls(){
+    const t=labels[lang]||labels.en;
+    $('#pg').innerHTML=l.length>1?l.map((_,j)=>`<button type="button" data-slide="${j}" aria-label="${t[0]} ${j+1}" aria-pressed="${j===k}"><span></span></button>`).join('')+`<button type="button" class="hero-pause" aria-label="${paused?t[2]:t[1]}">${paused?'▶':'Ⅱ'}</button>`:'';
+    pg(k)
+  }
+  function schedule(){clearInterval(tm);if(l.length>1&&!paused&&!document.hidden)tm=setInterval(()=>{k=(k+1)%l.length;heroShow(l[k],k)},15000)}
+  controls();localStorage.setItem('hi',k);heroShow(l[k],k);schedule();
+  $('#pg').onclick=e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.hasAttribute('data-slide')){k=Number(b.dataset.slide);heroShow(l[k],k)}
+    else if(b.classList.contains('hero-pause')){paused=!paused;controls()}
+    schedule()
+  };
+  document.addEventListener('visibilitychange',schedule);
+  reduced.addEventListener('change',e=>{paused=e.matches;controls();schedule()});
+  document.addEventListener('click',e=>{if(e.target.closest('[data-l]'))controls()})
 }
 
 const defaultInstagram='https://www.instagram.com/remal.hotel/';

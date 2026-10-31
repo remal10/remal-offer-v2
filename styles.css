@@ -275,3 +275,18 @@ label.note{display:grid;gap:.3rem}
 .hotel-instagram:hover{background:#d4af3718;border-color:var(--gold)}
 .hotel-instagram:focus-visible{outline:2px solid var(--g2);outline-offset:4px}
 .hotel-instagram[hidden]{display:none}
+
+/* Guest-controlled photographic slideshow */
+.bg{transition:opacity 2.4s ease;filter:saturate(1.04) contrast(1.02)}
+@keyframes k0{from{transform:scale(1.04) translate(-.5%,-.4%)}to{transform:scale(1.11) translate(.5%,.4%)}}
+@keyframes k1{from{transform:scale(1.11) translate(.5%,.4%)}to{transform:scale(1.04) translate(-.5%,-.4%)}}
+@keyframes k2{from{transform:scale(1.04) translate(.5%,-.4%)}to{transform:scale(1.11) translate(-.5%,.4%)}}
+@keyframes k3{from{transform:scale(1.11) translate(-.5%,.4%)}to{transform:scale(1.04) translate(.5%,-.4%)}}
+.pg{align-items:center;gap:2px}
+.pg button{display:grid;place-items:center;min-width:36px;height:44px;padding:0 6px;background:transparent;border:0;color:var(--g2);cursor:pointer;border-radius:6px}
+.pg button span{display:block;width:22px;height:3px;border-radius:4px;background:#ffffff60;transition:width .5s,background .5s;box-shadow:0 1px 8px #0008}
+.pg button.a span{width:32px;background:var(--g2)}
+.pg button:hover span{background:var(--g2)}
+.pg button:focus-visible{outline:2px solid var(--g2);outline-offset:1px;background:#0008}
+.pg .hero-pause{font-size:.85rem;text-shadow:0 1px 8px #000;min-width:44px}
+@media(prefers-reduced-motion:reduce){.bg{transition:none}.pg button span{transition:none}}
