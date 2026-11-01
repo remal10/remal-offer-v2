@@ -123,7 +123,7 @@ function paint(){
   document.querySelectorAll('.rv:not(.in)').forEach(n=>io?io.observe(n):n.classList.add('in'));
   observeOfferImpressions();slow()
 }
-let loadingGuest=false;
+let loadingGuest=false,lastGuestSignature=null;
 async function load(){
   if(loadingGuest)return;loadingGuest=true;
   try{
@@ -140,7 +140,8 @@ async function load(){
     if(c!==null){cfg={};(c||[]).forEach(r=>cfg[r.key]=r.value)}
     if(h!==null)hrows=h||[];
     if(first){first=false;heroStart(h||[])}
-    paint();
+    const signature=JSON.stringify([offers,secs,cfg,hrows,today()]);
+    if(signature!==lastGuestSignature){lastGuestSignature=signature;paint()}
     const failed=results.some(r=>r.status==='rejected'||r.value.error);
     $('#guest-load-status').hidden=!failed;
     $('#guest-load-message').textContent=({en:'Some content could not be refreshed. Please try again.',fr:'Certains contenus n’ont pas pu être actualisés. Réessayez.',ar:'تعذر تحديث بعض المحتوى. يرجى المحاولة مرة أخرى.',hi:'कुछ सामग्री अपडेट नहीं हो सकी। कृपया दोबारा कोशिश करें।',zh:'部分内容未能刷新，请重试。'})[lang];

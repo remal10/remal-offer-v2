@@ -310,3 +310,13 @@ label.note{display:grid;gap:.3rem}
 @keyframes ann-reveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(max-width:600px){.announcement{padding:1.4rem;gap:.9rem}.ann-symbol{width:34px;height:34px;font-size:1.1rem}.announcement p{font-size:.88rem}}
 @media(prefers-reduced-motion:reduce){.announcement{animation:none}}
+
+/* Preserve complete offer creatives; never crop portrait posters or their prices. */
+.card>.m{aspect-ratio:3/4;background:#100f0d}
+.card .m img{object-fit:contain;transform:none!important;animation:none!important}
+.card .m:after{display:none}
+.box>.m{display:flex;align-items:center;justify-content:center;min-height:0;aspect-ratio:auto;background:#100f0d}
+.box .m img{display:block;width:100%;height:auto;max-height:86svh;object-fit:contain;transform:none!important;animation:none!important}
+.box .m video{display:block;width:100%;height:auto;max-height:86svh;object-fit:contain}
+@media(min-width:900px){.grid .sp .card>.m{min-height:0;aspect-ratio:auto}.grid .sp .card .m img{height:100%;min-height:360px;max-height:600px}}
+@media(max-width:700px){.box>.m{aspect-ratio:auto;min-height:0}.box .m img,.box .m video{max-height:62svh}.box .t{min-width:0}.box h3{overflow-wrap:anywhere}}
