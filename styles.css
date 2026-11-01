@@ -338,3 +338,17 @@ body.sk{--d:.2s}
 .modal.on{animation:offer-backdrop .2s ease both}
 .modal.on .box{animation:offer-open .28s cubic-bezier(.2,.7,.2,1) both}
 @media(prefers-reduced-motion:reduce){#in{display:none}.modal.on,.modal.on .box{animation:none}}
+
+/* Keep sparse offer collections balanced instead of leaving empty grid columns. */
+.grid:has(>.rv:only-child){grid-template-columns:minmax(0,1fr);max-width:980px;margin-inline:auto}
+@media(min-width:701px){
+.grid>.rv:only-child .card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0}
+.grid>.rv:only-child .card>.m{aspect-ratio:3/4;min-height:0}
+.grid>.rv:only-child .card .m img{height:100%;min-height:0;max-height:none}
+.grid>.rv:only-child .card>.ct{padding:clamp(1.5rem,3vw,3rem);justify-content:center}
+.grid>.rv:only-child .card .pr{margin-top:1rem}
+.grid:has(>.rv:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){.grid:has(>.rv:only-child){max-width:500px}.grid>.rv:only-child .card{display:flex;min-height:0}}
+.bn{aspect-ratio:4/1;max-height:290px}
+@media(max-width:700px){.bn{aspect-ratio:2/1;max-height:220px}}
