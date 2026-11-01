@@ -184,8 +184,8 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch
 if(sessionStorage.getItem('intro')||location.hash==='#staff'){document.body.classList.add('sk');$('#in').remove()}
 else{
   sessionStorage.setItem('intro','1');
-  setTimeout(()=>{const i=$('#in');if(i)i.remove()},6000);
-  setTimeout(()=>document.body.classList.add('sk'),10500);
+  setTimeout(()=>{const i=$('#in');if(i)i.remove()},2600);
+  setTimeout(()=>document.body.classList.add('sk'),5500);
   $('#sk').onclick=()=>{const i=$('#in');document.body.classList.add('sk');i.style.transition='opacity .6s';i.style.opacity=0;setTimeout(()=>i.remove(),650)}
 }
 let tk=false;

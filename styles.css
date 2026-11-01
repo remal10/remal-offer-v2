@@ -320,3 +320,21 @@ label.note{display:grid;gap:.3rem}
 .box .m video{display:block;width:100%;height:auto;max-height:86svh;object-fit:contain}
 @media(min-width:900px){.grid .sp .card>.m{min-height:0;aspect-ratio:auto}.grid .sp .card .m img{height:100%;min-height:360px;max-height:600px}}
 @media(max-width:700px){.box>.m{aspect-ratio:auto;min-height:0}.box .m img,.box .m video{max-height:62svh}.box .t{min-width:0}.box h3{overflow-wrap:anywhere}}
+
+/* Short, calm opening transitions; offer artwork stays still and uncropped. */
+body{--d:1.4s}
+body.sk{--d:.2s}
+#in{animation:out .1s 2.3s forwards}
+#in .dp.l{animation:dl .95s 1.25s cubic-bezier(.77,0,.18,1) forwards}
+#in .dp.r{animation:dR .95s 1.25s cubic-bezier(.77,0,.18,1) forwards}
+#in .vl{animation:vl .8s .1s ease forwards,cf2 .35s 1.2s forwards}
+#in .cc{animation:cf .5s 1.25s forwards}
+#in .lg img{animation:fi .7s .1s ease forwards}
+#in .lg:after{animation:sw .7s .55s ease forwards}
+#in p{animation:tk .7s .3s ease forwards}
+#in em{animation:fi .7s .55s ease forwards}
+@keyframes offer-backdrop{from{background-color:#0000}to{background-color:#000e}}
+@keyframes offer-open{from{opacity:0;transform:translateY(8px) scale(.995)}to{opacity:1;transform:none}}
+.modal.on{animation:offer-backdrop .2s ease both}
+.modal.on .box{animation:offer-open .28s cubic-bezier(.2,.7,.2,1) both}
+@media(prefers-reduced-motion:reduce){#in{display:none}.modal.on,.modal.on .box{animation:none}}
