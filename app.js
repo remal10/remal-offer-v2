@@ -205,7 +205,7 @@ addEventListener('scroll',()=>{
 },{passive:true});
 
 /* ---------- staff dashboard ---------- */
-$('#tl').innerHTML=LG.map(l=>`<div class='lb'>${LN[l]}</div><input dir='auto' id='ti_${l}' placeholder='Title (${LN[l]})'><input dir='auto' id='tg_${l}' placeholder='Short teaser line, optional (${LN[l]})'><textarea dir='auto' id='td_${l}' rows='3' placeholder='Description (${LN[l]})'></textarea>${['location','hours','basis','conditions'].map(k=>`<label class='note'>${k}<input dir='auto' id='detail_${k}_${l}' maxlength='300'></label>`).join('')}`).join('');
+$('#tl').innerHTML=LG.map(l=>`<details class='translation-editor' ${l==='en'?'open':''}><summary>${LN[l]}</summary><div class='translation-fields'><input dir='auto' id='ti_${l}' placeholder='Title (${LN[l]})'><input dir='auto' id='tg_${l}' placeholder='Short teaser line, optional (${LN[l]})'><textarea dir='auto' id='td_${l}' rows='3' placeholder='Description (${LN[l]})'></textarea>${['location','hours','basis','conditions'].map(k=>`<label class='note'>${k}<input dir='auto' id='detail_${k}_${l}' maxlength='300'></label>`).join('')}</div></details>`).join('');
 const show=p=>{$('#lgn').style.display=p?'none':'grid';$('#pn').style.display=p?'block':'none'};
 let staffProfile=null;
 async function gate(){
@@ -227,11 +227,16 @@ async function route(){
   if(s)gate();
   else{const c=h.startsWith('#s-')&&CT.includes(h.slice(3))?h.slice(3):'all';if(c!==cat){cat=c;paint();$('#offres').scrollIntoView()}}
 }
-$('#tb').onclick=e=>{
-  const t=e.target.dataset.t;if(!t)return;
-  document.querySelectorAll('#tb button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['hero','sec','off','ann','set','stats','history','team','reviews'].forEach(x=>$('#p-'+x).classList.toggle('on',x===t))
-};
+const staffPages={"overview":["Overview","Your workspace at a glance."],"off":["Offers","Create, update and publish your guest offers."],"ann":["Announcements","Keep guests informed about hotel news."],"hero":["Home images","Choose the images welcoming your guests."],"sec":["Sections","Manage services, contacts and section details."],"reviews":["Guest reviews","Read guest feedback and manage publication."],"stats":["Statistics","Follow visits and interest in your offers."],"set":["Settings","Manage the hotel information and preferences."],"history":["History","Review changes and restore previous content."],"team":["Team","Manage staff access and section assignments."]};
+function openStaffPanel(t){
+  if(!staffPages[t]||(!staffProfile)|| (staffProfile.app_role!=='admin'&&['hero','ann','set','team'].includes(t)))return;
+  document.querySelectorAll('#tb [data-t]').forEach(b=>{b.classList.toggle('on',b.dataset.t===t);if(b.dataset.t===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  Object.keys(staffPages).forEach(x=>$('#p-'+x).classList.toggle('on',x===t));
+  $('#dashboard-page-title').textContent=staffPages[t][0];
+  $('#dashboard-page-description').textContent=staffPages[t][1];
+}
+$('#tb').onclick=e=>{const b=e.target.closest('[data-t]');if(b)openStaffPanel(b.dataset.t)};
+$('#p-overview').onclick=e=>{const b=e.target.closest('[data-dashboard-open]');if(b)openStaffPanel(b.dataset.dashboardOpen)};
 
 /* home images */
 async function heroLoad(){
@@ -576,7 +581,7 @@ function applyStaffScope(){
   document.querySelectorAll('#tb [data-t]').forEach(b=>{b.hidden=!admin&&['hero','ann','set','team'].includes(b.dataset.t)});
   const select=$('#ct');Array.from(select.options||[]).forEach(o=>o.disabled=!admin&&o.value!==staffProfile.section);
   if(!admin)select.value=staffProfile.section;
-  if(!admin&&document.querySelector('#tb .on')?.hidden){document.querySelectorAll('#tb button').forEach(b=>b.classList.toggle('on',b.dataset.t==='off'));document.querySelectorAll('.pnl').forEach(p=>p.classList.toggle('on',p.id==='p-off'))}
+  openStaffPanel('overview');
   $('#staff-scope').textContent=admin?'Administrator':'Section: '+staffProfile.section
 }
 async function statsLoad(){

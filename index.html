@@ -92,22 +92,24 @@
   <h2 class="gold" style="margin-bottom:1.2rem">Staff dashboard</h2>
 
   <div id="lgn" class="f">
-    <input id="em" type="email" placeholder="Email">
-    <input id="pw" type="password" placeholder="Password">
+    <label>Email<input id="em" type="email" placeholder="Email" autocomplete="username"></label>
+    <label>Password<input id="pw" type="password" placeholder="Password" autocomplete="current-password"></label>
     <div class="row"><button class="btn solid" id="bin">Sign in</button><button class="sm" id="bup">Create my account</button></div>
     <p class="msg" id="ms"></p>
   </div>
 
-  <div id="pn" style="display:none"><p class="note" id="staff-scope"></p><div id="dashboard-summary" class="summary-grid"></div>
-    <div class="row" style="justify-content:flex-end;margin-bottom:.6rem"><button class="sm" id="bout">Sign out</button></div>
-    <div class="tb" id="tb">
-      <button class="on" data-t="hero">Home images</button>
-      <button data-t="sec">Sections</button>
-      <button data-t="off">Offers</button><button data-t="ann">Announcements</button>
-      <button data-t="set">Settings</button><button data-t="stats">Statistics</button><button data-t="reviews">Reviews</button><button data-t="history">History</button><button data-t="team">Team</button>
+  <div id="pn" style="display:none">
+    <div class="dashboard-account"><span class="note" id="staff-scope"></span><button class="sm" id="bout">Sign out</button></div>
+    <div class="dashboard-shell">
+    <nav class="tb" id="tb" aria-label="Dashboard navigation"><div class="nav-group"><p>Workspace</p><button type="button" class="on" data-t="overview" aria-current="page">Overview</button></div><div class="nav-group"><p>Content</p><button type="button" class="" data-t="off" >Offers</button><button type="button" class="" data-t="ann" >Announcements</button><button type="button" class="" data-t="hero" >Home images</button><button type="button" class="" data-t="sec" >Sections</button></div><div class="nav-group"><p>Guest insights</p><button type="button" class="" data-t="reviews" >Guest reviews</button><button type="button" class="" data-t="stats" >Statistics</button></div><div class="nav-group"><p>Administration</p><button type="button" class="" data-t="set" >Settings</button><button type="button" class="" data-t="history" >History</button><button type="button" class="" data-t="team" >Team</button></div></nav>
+    <div class="dashboard-content">
+    <div class="dashboard-heading"><p class="dashboard-eyebrow">REMAL EXPERIENCE</p><h2 id="dashboard-page-title">Overview</h2><p id="dashboard-page-description">Your workspace at a glance.</p></div>
+    <div class="pnl on" id="p-overview">
+      <div id="dashboard-summary" class="summary-grid"></div>
+      <div class="dashboard-welcome"><h3>Welcome to your workspace</h3><p>Keep your offers up to date and give every guest a memorable experience.</p></div>
+      <div class="dashboard-actions"><button type="button" class="dashboard-action" data-dashboard-open="off"><strong>Offers <span aria-hidden="true">↗</span></strong><span>Create, update and publish your guest offers.</span></button><button type="button" class="dashboard-action" data-dashboard-open="sec"><strong>Sections <span aria-hidden="true">↗</span></strong><span>Manage services, contacts and section details.</span></button><button type="button" class="dashboard-action" data-dashboard-open="reviews"><strong>Guest reviews <span aria-hidden="true">↗</span></strong><span>Read guest feedback and manage publication.</span></button><button type="button" class="dashboard-action" data-dashboard-open="stats"><strong>Statistics <span aria-hidden="true">↗</span></strong><span>Follow visits and interest in your offers.</span></button></div>
     </div>
-
-    <div class="pnl on" id="p-hero"><div class="f">
+    <div class="pnl" id="p-hero"><div class="f">
       <div class="row" style="justify-content:space-between"><b id="hc2"></b><label class="btn solid" style="cursor:pointer">+ Add images<input type="file" id="hf" accept="image/*" multiple hidden></label></div>
       <p class="note">The home screen shows these images one after another: a different one at each visit, then a new one every 15 seconds while the guest stays connected. Up to 10 images. Use Hide to pause one without deleting it.</p>
       <div class="hg" id="hg"></div>
@@ -158,6 +160,7 @@
 <div class="row"><button class="btn solid" id="ss">Save settings</button></div>
       <p class="msg" id="sm"></p>
       <p class="note">Each offer uses its section’s contacts. Empty section fields use the reception contact; if neither is available, guests are asked to contact reception.</p>
+    </div></div>
     </div></div>
   </div>
 </section>
