@@ -17,7 +17,11 @@ hi:{hello:'स्वागत है',sub:'आपके प्रवास क�
 zh:{hello:'欢迎',sub:'为您的住宿精心准备的专属体验与优惠。',cta:'探索',eb:'为您的住宿精选',offers:'我们的体验',hl:'本周精选',back:'全部分区',restaurant:'餐厅',bar:'酒吧',pool:'泳池',spa:'水疗',services:'服务',empty:'暂无优惠。',contact:'如有任何需求，请联系前台。',close:'关闭',bNew:'新品',bSig:'招牌',bPop:'宾客最爱',bLim:'限时',bExc:'专属',last:'最后一天',ends:'还剩 {n} 天',wa:'通过 WhatsApp 预订',call:'致电前台',ask:'请联系前台为您预订。',pre:'您好，我想了解更多：',instT:'安装我们的应用',instD:'将 Remal 添加到主屏幕，快速访问。',instB:'安装',instI:'点按“分享”，然后选择“添加到主屏幕”。'}
 };
 
-let lang=localStorage.getItem('lang')||'en',cat='all',offers=[],secs={},cfg={},hrows=[],editId=null,editOld=null,staffList=[],dp=null,cur=0,kv=0,tm,first=true;
+
+const deviceLanguage=()=>{for(const value of (navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'en'])){const base=String(value).toLowerCase().split(/[-_]/)[0];if(LG.includes(base))return base}return 'en'};
+const initialLanguage=()=>{try{const saved=localStorage.getItem('lang');return LG.includes(saved)?saved:deviceLanguage()}catch{return deviceLanguage()}};
+
+let lang=initialLanguage(),cat='all',offers=[],secs={},cfg={},hrows=[],editId=null,editOld=null,staffList=[],dp=null,cur=0,kv=0,tm,first=true;
 if(!L[lang])lang='en';
 
 /* ---------- helpers ---------- */
@@ -108,7 +112,7 @@ let guestOffersLoaded=false;
 /* ---------- guest site ---------- */
 function paint(){
   const t=L[lang],all=cat==='all';
-  paintInstagram();paintAnnouncements();paintDiscovery();
+  paintInstagram();paintAnnouncements();paintDiscovery();paintReviewsText();
   document.querySelectorAll('[data-i]').forEach(e=>{if(e.hasAttribute('data-split'))split(e,SLOGAN);else e.textContent=t[e.dataset.i]});
   $('#ibd').textContent=dp?t.instD:t.instI;
   $('#lg').innerHTML=LG.map(l=>`<button class='${l===lang?'on':''}' data-l='${l}'>${LN[l]}</button>`).join('');
@@ -161,7 +165,7 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('click',e=>{
   const l=e.target.closest('[data-l]'),c=e.target.closest('[data-c]'),k=e.target.closest('.card');
-  if(l){lang=l.dataset.l;localStorage.setItem('lang',lang);document.body.classList.add('sk');dir();paint()}
+  if(l){lang=l.dataset.l;try{localStorage.setItem('lang',lang)}catch{}document.body.classList.add('sk');dir();paint()}
   else if(c){location.hash=c.dataset.c==='all'?'offres':'s-'+c.dataset.c}
   else if(k){
     $('#bx').dir=lang==='ar'?'rtl':'ltr';$('#bx').lang=lang;
@@ -212,7 +216,7 @@ async function gate(){
     if(error)throw error;
     if(!data){show(false);$('#ms').textContent='This account does not have access to the staff dashboard.';return}
     staffProfile=data;show(true);applyStaffScope();
-    staffLoad();secLoad();statsLoad();historyLoad();
+    staffLoad();secLoad();statsLoad();historyLoad();reviewQueueLoad();
     if(data.app_role==='admin'){heroLoad();cfgLoad();annLoad();teamLoad()}
   }catch(e){show(false);$('#ms').textContent=e.message||'Could not verify your access. Try again.'}
 }
@@ -226,7 +230,7 @@ async function route(){
 $('#tb').onclick=e=>{
   const t=e.target.dataset.t;if(!t)return;
   document.querySelectorAll('#tb button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['hero','sec','off','ann','set','stats','history','team'].forEach(x=>$('#p-'+x).classList.toggle('on',x===t))
+  ['hero','sec','off','ann','set','stats','history','team','reviews'].forEach(x=>$('#p-'+x).classList.toggle('on',x===t))
 };
 
 /* home images */
@@ -614,6 +618,57 @@ $('#team-list').onclick=async e=>{
   const b=e.target.closest('[data-team-remove]');if(!b||!confirm('Remove dashboard access for '+b.dataset.teamRemove+'?'))return;
   const {error}=await S.rpc('remal_staff_set',{p_email:b.dataset.teamRemove,p_remove:true});
   if(error)$('#team-msg').textContent=error.message;else{teamLoad();historyLoad()}
+};
+
+/* Public reviews: pending submissions never appear in the guest list. */
+const REVIEW_UI={"en":{"heading":"Guest reviews","write":"Share your experience","section":"Section","choose":"Choose a section","rating":"Your rating","name":"First name (optional)","comment":"Your review (optional)","send":"Submit review","notice":"Reviews are visible to everyone after moderation. Your first name and comment will be public. No room number or contact details, please.","success":"Thank you. Your review was submitted for moderation.","empty":"No published reviews yet.","guest":"Guest","count":"published reviews","more":"More reviews","loading":"Loading reviews…","error":"Could not load reviews. Please try again.","retry":"Retry","failed":"Could not submit. Please try again.","limit":"You have already submitted a review for this section today, or reached the daily limit."},"fr":{"heading":"Avis des clients","write":"Partagez votre expérience","section":"Section","choose":"Choisissez une section","rating":"Votre note","name":"Prénom (facultatif)","comment":"Votre avis (facultatif)","send":"Envoyer mon avis","notice":"Les avis sont visibles par tous après modération. Votre prénom et votre commentaire seront publics. N’indiquez ni numéro de chambre ni coordonnées.","success":"Merci. Votre avis a été envoyé pour validation.","empty":"Aucun avis publié pour le moment.","guest":"Client","count":"avis publiés","more":"Plus d’avis","loading":"Chargement des avis…","error":"Impossible de charger les avis. Réessayez.","retry":"Réessayer","failed":"Envoi impossible. Veuillez réessayer.","limit":"Vous avez déjà donné un avis pour cette section aujourd’hui ou atteint la limite quotidienne."},"ar":{"heading":"آراء الضيوف","write":"شارك تجربتك","section":"القسم","choose":"اختر قسمًا","rating":"تقييمك","name":"الاسم الأول (اختياري)","comment":"رأيك (اختياري)","send":"إرسال التقييم","notice":"تظهر الآراء للجميع بعد المراجعة. سيكون اسمك الأول وتعليقك علنيين. يرجى عدم ذكر رقم الغرفة أو معلومات الاتصال.","success":"شكرًا لك. تم إرسال تقييمك للمراجعة.","empty":"لا توجد آراء منشورة بعد.","guest":"ضيف","count":"تقييمات منشورة","more":"المزيد من الآراء","loading":"جارٍ تحميل الآراء…","error":"تعذر تحميل الآراء. حاول مرة أخرى.","retry":"إعادة المحاولة","failed":"تعذر الإرسال. حاول مرة أخرى.","limit":"لقد أرسلت تقييمًا لهذا القسم اليوم أو وصلت إلى الحد اليومي."},"hi":{"heading":"मेहमानों की समीक्षाएँ","write":"अपना अनुभव साझा करें","section":"अनुभाग","choose":"एक अनुभाग चुनें","rating":"आपकी रेटिंग","name":"पहला नाम (वैकल्पिक)","comment":"आपकी समीक्षा (वैकल्पिक)","send":"समीक्षा भेजें","notice":"समीक्षाएँ जाँच के बाद सभी को दिखती हैं। आपका पहला नाम और टिप्पणी सार्वजनिक होंगे। कमरा नंबर या संपर्क विवरण न लिखें।","success":"धन्यवाद। आपकी समीक्षा जाँच के लिए भेज दी गई है।","empty":"अभी कोई प्रकाशित समीक्षा नहीं है।","guest":"मेहमान","count":"प्रकाशित समीक्षाएँ","more":"और समीक्षाएँ","loading":"समीक्षाएँ लोड हो रही हैं…","error":"समीक्षाएँ लोड नहीं हो सकीं। दोबारा कोशिश करें।","retry":"दोबारा कोशिश करें","failed":"समीक्षा भेजी नहीं जा सकी। दोबारा कोशिश करें।","limit":"आप आज इस अनुभाग के लिए समीक्षा भेज चुके हैं या दैनिक सीमा पूरी हो गई है।"},"zh":{"heading":"宾客评价","write":"分享您的体验","section":"服务分类","choose":"选择分类","rating":"您的评分","name":"名字（选填）","comment":"您的评价（选填）","send":"提交评价","notice":"评价经审核后向所有人展示。您的名字和评论将公开，请勿填写房间号或联系方式。","success":"谢谢，您的评价已提交审核。","empty":"暂无已发布评价。","guest":"宾客","count":"条已发布评价","more":"更多评价","loading":"正在加载评价…","error":"无法加载评价，请重试。","retry":"重试","failed":"无法提交，请重试。","limit":"您今天已评价此分类，或已达到每日提交上限。"}};
+let reviewsData=null,reviewsCategory=null,reviewsOffset=0,reviewsRequest=0,reviewSubmitting=false;
+function renderGuestReviews(){
+ const t=REVIEW_UI[lang],host=$('#guest-reviews-list'),data=reviewsData;if(!data)return;
+ $('#guest-reviews-summary').textContent=data.count?Number(data.average).toFixed(1)+' / 5 · '+Number(data.count)+' '+t.count:'';
+ host.innerHTML=(data.items||[]).map(r=>'<article class="review-card" lang="'+esc(r.language)+'" dir="auto"><div class="review-stars" aria-label="'+Number(r.rating)+' / 5">'+('★'.repeat(r.rating))+('☆'.repeat(5-r.rating))+'</div><p>'+esc(r.body)+'</p><div class="note">'+esc(r.display_name||t.guest)+' · '+esc(L[lang][r.category])+' · '+esc(new Intl.DateTimeFormat(lang,{timeZone:'Asia/Dubai',dateStyle:'medium'}).format(new Date(r.created_at)))+'</div></article>').join('')||'<p class="note">'+esc(t.empty)+'</p>';
+ $('#reviews-more').hidden=reviewsOffset+12>=Number(data.count);$('#reviews-more').textContent=t.more;
+}
+async function loadGuestReviews(){
+ const request=++reviewsRequest,t=REVIEW_UI[lang],host=$('#guest-reviews-list');
+ host.textContent=t.loading;$('#reviews-more').hidden=true;
+ try{
+  const {data,error}=await S.rpc('remal_reviews',{p_category:cat==='all'?null:cat,p_offset:reviewsOffset});
+  if(request!==reviewsRequest)return;if(error)throw error;reviewsData=data;renderGuestReviews()
+ }catch(e){if(request!==reviewsRequest)return;host.textContent=REVIEW_UI[lang].error;$('#reviews-retry').hidden=false}
+}
+function paintReviewsText(){
+ const t=REVIEW_UI[lang];
+ document.querySelectorAll('[data-review-label]').forEach(e=>e.textContent=t[e.dataset.reviewLabel]);
+ const select=$('#review-section'),selected=select.value;
+ select.innerHTML='<option value="">'+esc(t.choose)+'</option>'+CT.map(c=>'<option value="'+c+'">'+esc(L[lang][c])+'</option>').join('');
+ if(reviewsCategory!==cat){select.value=cat==='all'?'':cat;reviewsCategory=cat;reviewsOffset=0;reviewsData=null;loadGuestReviews()}else{select.value=selected;renderGuestReviews()}
+ $('#reviews-more').textContent=t.more;$('#reviews-retry').textContent=t.retry;
+}
+$('#reviews-more').onclick=()=>{reviewsOffset+=12;loadGuestReviews()};
+$('#reviews-retry').onclick=()=>{$('#reviews-retry').hidden=true;loadGuestReviews()};
+$('#guest-review-form').onsubmit=async e=>{
+ e.preventDefault();if(reviewSubmitting)return;
+ const form=e.target;if(!form.reportValidity())return;
+ const rating=form.querySelector('input[name="guest-rating"]:checked');
+ if(!rating)return;reviewSubmitting=true;$('#review-submit').disabled=true;const message=$('#review-message');message.textContent='';
+ try{
+  const {error}=await S.rpc('remal_review_submit',{p_visitor:metricVisitor,p_category:$('#review-section').value,p_rating:Number(rating.value),p_body:$('#review-body').value.trim(),p_name:$('#review-name').value.trim(),p_language:lang});
+  if(error)throw error;
+  form.reset();$('#review-section').value=cat==='all'?'':cat;message.textContent=REVIEW_UI[lang].success
+ }catch(e){message.textContent=/limit|already submitted/i.test(e.message||'')?REVIEW_UI[lang].limit:REVIEW_UI[lang].failed}
+ finally{reviewSubmitting=false;$('#review-submit').disabled=false}
+};
+async function reviewQueueLoad(){
+ const host=$('#review-queue');host.textContent='Loading…';
+ const {data,error}=await S.rpc('remal_review_queue',{p_status:$('#review-status').value});
+ if(error){host.textContent=error.message;return}
+ host.innerHTML=(data||[]).map(r=>'<div class="review-card"><strong>'+Number(r.rating)+' / 5 · '+esc(r.category)+'</strong><p dir="auto">'+esc(r.body)+'</p><p class="note" dir="auto">'+esc(r.display_name||'Guest')+' · '+esc(r.language)+' · '+esc(r.status)+'</p><div class="row">'+['published','rejected','pending'].filter(s=>s!==r.status).map(s=>'<button class="sm" data-review-id="'+r.id+'" data-review-state="'+s+'">'+({published:'Publish',rejected:'Reject',pending:'Return to pending'})[s]+'</button>').join('')+'</div></div>').join('')||'<p class="note">No reviews in this category.</p>'
+}
+$('#review-status').onchange=reviewQueueLoad;$('#reviews-refresh').onclick=reviewQueueLoad;
+$('#review-queue').onclick=async e=>{
+ const b=e.target.closest('[data-review-id]');if(!b)return;b.disabled=true;
+ try{const {error}=await S.rpc('remal_review_moderate',{p_id:b.dataset.reviewId,p_status:b.dataset.reviewState});if(error)throw error;$('#moderation-msg').textContent='Review updated ✓';await reviewQueueLoad();reviewsData=null;loadGuestReviews()}catch(e){$('#moderation-msg').textContent=e.message;b.disabled=false}
 };
 
 dir();load();route();startMetrics();addEventListener('hashchange',route);
