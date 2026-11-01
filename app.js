@@ -106,7 +106,7 @@ function paintInstagram(){
 /* ---------- guest site ---------- */
 function paint(){
   const t=L[lang],all=cat==='all';
-  paintInstagram();
+  paintInstagram();paintAnnouncements();
   document.querySelectorAll('[data-i]').forEach(e=>{if(e.hasAttribute('data-split'))split(e,SLOGAN);else e.textContent=t[e.dataset.i]});
   $('#ibd').textContent=dp?t.instD:t.instI;
   $('#lg').innerHTML=LG.map(l=>`<button class='${l===lang?'on':''}' data-l='${l}'>${LN[l]}</button>`).join('');
@@ -187,7 +187,7 @@ async function gate(){
   const {data:{session}}=await S.auth.getSession();
   if(!session){show(false);return}
   const {data}=await S.from('staff_emails').select('email').maybeSingle();
-  if(data){show(true);staffLoad();secLoad();heroLoad();cfgLoad()}
+  if(data){show(true);staffLoad();secLoad();heroLoad();cfgLoad();annLoad()}
   else{show(false);$('#ms').textContent='This account does not have access to the staff dashboard.'}
 }
 async function route(){
@@ -199,7 +199,7 @@ async function route(){
 $('#tb').onclick=e=>{
   const t=e.target.dataset.t;if(!t)return;
   document.querySelectorAll('#tb button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['hero','sec','off','set'].forEach(x=>$('#p-'+x).classList.toggle('on',x===t))
+  ['hero','sec','off','ann','set'].forEach(x=>$('#p-'+x).classList.toggle('on',x===t))
 };
 
 /* home images */
@@ -367,5 +367,86 @@ $('#ss').onclick=async()=>{
 $('#bin').onclick=async()=>{const {error}=await S.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});$('#ms').textContent=error?error.message:'';if(!error)gate()};
 $('#bup').onclick=async()=>{const {data,error}=await S.auth.signUp({email:$('#em').value.trim(),password:$('#pw').value});$('#ms').textContent=error?error.message:(data.session?'':'Account created: check your email to confirm, then sign in.');if(data&&data.session)gate()};
 $('#bout').onclick=async()=>{await S.auth.signOut();show(false)};
+
+/* ---------- multilingual hotel announcements ---------- */
+const ANN_TEXT={
+en:{label:'From Remal',news:'Hotel news',event:'Upcoming event',notice:'Please note',more:'Discover more',previous:'Previous announcement',next:'Next announcement',pause:'Pause announcements',play:'Play announcements'},
+fr:{label:'Les nouvelles de Remal',news:'Actualité',event:'Événement',notice:'Information importante',more:'En savoir plus',previous:'Annonce précédente',next:'Annonce suivante',pause:'Mettre en pause',play:'Faire défiler'},
+ar:{label:'من رمال',news:'أخبار الفندق',event:'فعالية قادمة',notice:'تنبيه مهم',more:'اكتشف المزيد',previous:'الإعلان السابق',next:'الإعلان التالي',pause:'إيقاف مؤقت',play:'تشغيل الإعلانات'},
+hi:{label:'रिमाल की ओर से',news:'होटल समाचार',event:'आगामी कार्यक्रम',notice:'महत्वपूर्ण सूचना',more:'और जानें',previous:'पिछली घोषणा',next:'अगली घोषणा',pause:'घोषणाएँ रोकें',play:'घोषणाएँ चलाएँ'},
+zh:{label:'来自 Remal',news:'酒店资讯',event:'即将举行的活动',notice:'重要通知',more:'了解更多',previous:'上一条公告',next:'下一条公告',pause:'暂停公告',play:'播放公告'}
+};
+let annEdit=null,annRows=[],annIndex=0,annTimer=null,annPaused=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const annSafeURL=v=>{try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password?u.href:''}catch{return ''}};
+const annValues=m=>Object.entries(m).filter(([k])=>k.startsWith('announcement_')).flatMap(([key,value])=>{try{const o=JSON.parse(value);return o&&o.translations?[{...o,key}]:[]}catch{return []}});
+const annActive=(a,date=today())=>a.published&&(!a.start||a.start<=date)&&(!a.end||a.end>=date);
+const annCopy=a=>{const t=a.translations||{};return t[lang]?.title?t[lang]:t.en||Object.values(t)[0]||{}};
+function annCard(a){
+  const t=ANN_TEXT[lang],x=annCopy(a),url=annSafeURL(a.link);
+  return `<article class="announcement"><span class="ann-symbol" aria-hidden="true">${a.kind==='event'?'✧':a.kind==='notice'?'!':'✦'}</span><div class="ann-copy"><span class="ann-eyebrow">${esc(t.label)} · ${esc(t[a.kind]||t.news)}</span><h3>${esc(x.title||'')}</h3><p>${esc(x.body||'')}</p>${url?`<a class="ann-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(x.linkLabel||t.more)} ↗</a>`:''}</div></article>`
+}
+function paintAnnouncements(){
+  clearInterval(annTimer);
+  const host=$('#announcements');if(!host)return;
+  const a=annValues(cfg).filter(x=>annActive(x));
+  host.hidden=!a.length;if(!a.length){host.innerHTML='';return}
+  annIndex=((annIndex%a.length)+a.length)%a.length;
+  const t=ANN_TEXT[lang];
+  host.innerHTML=annCard(a[annIndex])+(a.length>1?`<div class="ann-controls"><button type="button" data-ann-step="-1" aria-label="${esc(t.previous)}">‹</button><span>${annIndex+1} / ${a.length}</span><button type="button" data-ann-step="1" aria-label="${esc(t.next)}">›</button><button type="button" data-ann-pause aria-label="${esc(annPaused?t.play:t.pause)}">${annPaused?'▶':'Ⅱ'}</button></div>`:'');
+  if(a.length>1&&!annPaused&&!document.hidden)annTimer=setInterval(()=>{if(!host.matches(':hover')&&!host.contains(document.activeElement)){annIndex++;paintAnnouncements()}},10000)
+}
+document.addEventListener('click',e=>{
+  const step=e.target.closest('[data-ann-step]'),pause=e.target.closest('[data-ann-pause]');
+  if(step){annIndex+=Number(step.dataset.annStep);paintAnnouncements()}
+  if(pause){annPaused=!annPaused;paintAnnouncements()}
+});
+document.addEventListener('visibilitychange',paintAnnouncements);
+$('#ann-translations').innerHTML=LG.map(l=>`<fieldset class="f"><legend class="lb">${LN[l]}</legend><label class="note">Title<input id="ann-title-${l}" dir="auto" maxlength="120"></label><label class="note">Message<textarea id="ann-body-${l}" dir="auto" maxlength="700" rows="3"></textarea></label><label class="note">Link label (optional)<input id="ann-label-${l}" dir="auto" maxlength="60"></label></fieldset>`).join('');
+function readAnnouncement(){
+  const translations={};LG.forEach(l=>{translations[l]={title:$('#ann-title-'+l).value.trim(),body:$('#ann-body-'+l).value.trim(),linkLabel:$('#ann-label-'+l).value.trim()}});
+  return {kind:$('#ann-kind').value,start:$('#ann-start').value,end:$('#ann-end').value,link:$('#ann-link').value.trim(),published:$('#ann-published').checked,translations}
+}
+function resetAnnouncement(){annEdit=null;$('#ann-form').reset();$('#ann-editor-preview').innerHTML='';$('#ann-msg').textContent=''}
+async function annLoad(){
+  const {data,error}=await S.from('site_settings').select('*').like('key','announcement_%');
+  if(error){$('#ann-msg').textContent=error.message;return}
+  const m={};(data||[]).forEach(r=>m[r.key]=r.value);annRows=annValues(m);
+  Object.keys(cfg).filter(k=>k.startsWith('announcement_')).forEach(k=>delete cfg[k]);Object.assign(cfg,m);
+  $('#ann-list').innerHTML=annRows.map(a=>{
+    const status=!a.published?'Draft':a.end&&a.end<today()?'Expired':a.start&&a.start>today()?'Scheduled':'Published';
+    return `<div class="li"><span><b>${esc(annCopy(a).title||'(untitled)')}</b><br><span class="note">${status} · ${a.start?readableDate(a.start):'Immediately'} — ${a.end?readableDate(a.end):'No expiry'}</span></span><span class="row"><button class="sm" data-ann-edit="${esc(a.key)}">Edit</button><button class="sm" data-ann-delete="${esc(a.key)}">Delete</button></span></div>`
+  }).join('')||'<p class="note">No announcements yet.</p>';
+  paintAnnouncements()
+}
+$('#ann-cancel').onclick=resetAnnouncement;
+$('#ann-preview').onclick=()=>{$('#ann-editor-preview').innerHTML=annCard(readAnnouncement())};
+$('#ann-list').onclick=async e=>{
+  const edit=e.target.closest('[data-ann-edit]'),del=e.target.closest('[data-ann-delete]');
+  if(edit){
+    const a=annRows.find(a=>a.key===edit.dataset.annEdit);if(!a)return;annEdit=a.key;
+    $('#ann-kind').value=a.kind;$('#ann-start').value=a.start||'';$('#ann-end').value=a.end||'';$('#ann-link').value=a.link||'';$('#ann-published').checked=!!a.published;
+    LG.forEach(l=>{const t=a.translations[l]||{};$('#ann-title-'+l).value=t.title||'';$('#ann-body-'+l).value=t.body||'';$('#ann-label-'+l).value=t.linkLabel||''});
+    $('#ann-msg').textContent='Editing announcement';$('#ann-editor-preview').innerHTML='';$('#ann-form').scrollIntoView()
+  }
+  if(del&&confirm('Delete this announcement?')){
+    const {error}=await S.from('site_settings').delete().eq('key',del.dataset.annDelete);
+    if(error){$('#ann-msg').textContent=error.message;return}
+    if(annEdit===del.dataset.annDelete)resetAnnouncement();annLoad()
+  }
+};
+$('#ann-form').onsubmit=async e=>{
+  e.preventDefault();const a=readAnnouncement(),m=$('#ann-msg'),button=e.submitter;
+  if(!LG.some(l=>a.translations[l].title)){m.textContent='Add at least one title.';return}
+  if(a.published&&LG.some(l=>!a.translations[l].title||!a.translations[l].body)){m.textContent='Complete the title and message in all 5 languages before publishing.';return}
+  if(a.start&&a.end&&a.end<a.start){m.textContent='The end date must be on or after the start date.';return}
+  if(a.published&&a.end&&a.end<today()){m.textContent='The end date has passed. Correct it or save as a draft.';return}
+  if(a.link&&!annSafeURL(a.link)){m.textContent='Enter a valid HTTPS link.';return}
+  if(button)button.disabled=true;m.textContent='Saving…';
+  try{
+    const key=annEdit||'announcement_'+crypto.randomUUID();
+    const {error}=await S.from('site_settings').upsert({key,value:JSON.stringify(a),updated_at:new Date().toISOString()},{onConflict:'key'});
+    if(error)throw error;resetAnnouncement();m.textContent='Announcement saved ✓';await annLoad()
+  }catch(x){m.textContent=x.message||'Could not save.'}finally{if(button)button.disabled=false}
+};
 
 dir();load();route();addEventListener('hashchange',route);

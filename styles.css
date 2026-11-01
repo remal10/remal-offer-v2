@@ -290,3 +290,23 @@ label.note{display:grid;gap:.3rem}
 .pg button:focus-visible{outline:2px solid var(--g2);outline-offset:1px;background:#0008}
 .pg .hero-pause{font-size:.85rem;text-shadow:0 1px 8px #000;min-width:44px}
 @media(prefers-reduced-motion:reduce){.bg{transition:none}.pg button span{transition:none}}
+
+/* Multilingual guest announcements */
+#announcements{position:relative;margin:0 0 2.8rem;border:1px solid #d4af3755;border-radius:16px;background:radial-gradient(ellipse at 0 0,#d4af3714,transparent 65%),#11100e;overflow:hidden;box-shadow:0 14px 40px #0003}
+#announcements[hidden]{display:none}
+.announcement{display:flex;align-items:flex-start;gap:1.4rem;padding:2rem;animation:ann-reveal .6s ease both}
+.ann-symbol{display:grid;place-items:center;flex:none;width:48px;height:48px;border:1px solid #d4af3755;border-radius:50%;color:var(--g2);font-size:1.5rem}
+.ann-copy{min-width:0;flex:1}
+.ann-eyebrow{display:block;color:var(--gold);font-size:.65rem;letter-spacing:.15em;line-height:1.6}
+.announcement h3{font-size:clamp(1.7rem,4vw,2.4rem);margin:.6rem 0;overflow-wrap:anywhere}
+.announcement p{font-size:.93rem;line-height:1.8;color:#d5cbb9;white-space:pre-line;overflow-wrap:anywhere;max-width:80ch}
+.ann-link{display:inline-flex;color:var(--g2);font-size:.8rem;padding:.6rem 0;text-underline-offset:5px;overflow-wrap:anywhere}
+.ann-controls{display:flex;justify-content:flex-end;align-items:center;padding:0 1.4rem .8rem;gap:.5rem}
+.ann-controls button{width:44px;height:44px;border:1px solid #d4af3740;border-radius:50%;background:transparent;color:var(--g2);font-size:1rem;cursor:pointer}
+.ann-controls span{font-size:.7rem;color:var(--mut);min-width:42px;text-align:center}
+.ann-controls button:focus-visible,.ann-link:focus-visible{outline:2px solid var(--g2);outline-offset:3px}
+#ann-editor-preview{border:1px solid #d4af3733;border-radius:12px;overflow:hidden}
+#ann-editor-preview:empty{display:none}
+@keyframes ann-reveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:600px){.announcement{padding:1.4rem;gap:.9rem}.ann-symbol{width:34px;height:34px;font-size:1.1rem}.announcement p{font-size:.88rem}}
+@media(prefers-reduced-motion:reduce){.announcement{animation:none}}

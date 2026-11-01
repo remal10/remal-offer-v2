@@ -57,6 +57,7 @@
       <span class="eb" data-i="eb"></span>
       <h2 class="gold" data-i="offers"></h2>
     </div>
+    <section id="announcements" aria-label="Hotel announcements" hidden></section>
     <div id="ti"></div>
     <div id="pl"></div>
     <div class="grid" id="gr"></div>
@@ -99,7 +100,7 @@
     <div class="tb" id="tb">
       <button class="on" data-t="hero">Home images</button>
       <button data-t="sec">Sections</button>
-      <button data-t="off">Offers</button>
+      <button data-t="off">Offers</button><button data-t="ann">Announcements</button>
       <button data-t="set">Settings</button>
     </div>
 
@@ -138,7 +139,8 @@
       <div id="ls"></div>
     </div>
 
-    <div class="pnl" id="p-set"><div class="f">\n<h3>Reservation contacts</h3><p class="note">Add the public booking numbers guests should use for each section. If a field is empty, its reception number below is used.</p><h3>Reception — fallback contacts</h3>
+    <div class="pnl" id="p-ann"><h3>Guest announcements</h3><p class="note">Published announcements appear below the home slideshow and on section pages. Complete all five languages before publishing.</p><form id="ann-form" class="f"><label class="note">Style<select id="ann-kind"><option value="news">Hotel news</option><option value="event">Event</option><option value="notice">Important notice</option></select></label><div class="row"><label class="note">Start date<input type="date" id="ann-start"></label><label class="note">End date<input type="date" id="ann-end"></label></div><div id="ann-translations"></div><label class="note">Optional destination link (https://…)<input type="url" dir="ltr" id="ann-link" placeholder="https://…"></label><label><input type="checkbox" id="ann-published" style="width:auto"> Published</label><div class="row"><button class="btn solid">Save announcement</button><button type="button" class="sm" id="ann-preview">Preview</button><button type="button" class="sm" id="ann-cancel">New / Cancel</button></div><p id="ann-msg" class="msg" aria-live="polite"></p><div id="ann-editor-preview"></div></form><div id="ann-list"></div></div>
+<div class="pnl" id="p-set"><div class="f">\n<h3>Reservation contacts</h3><p class="note">Add the public booking numbers guests should use for each section. If a field is empty, its reception number below is used.</p><h3>Reception — fallback contacts</h3>
       <label class="note">WhatsApp number for reservations (country code, digits only)<input id="wa" placeholder="e.g. 971501234567"></label>
       <label class="note">Reception phone (shown as a Call button)<input id="ph" placeholder="e.g. +97121234567"></label>
       <fieldset class="f" style="margin:0"><legend class="lb">Restaurant</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_restaurant_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_restaurant_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
