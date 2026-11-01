@@ -104,6 +104,7 @@ function paintInstagram(){
   link.hidden=!url;if(url)link.href=url;
   $('#instagram-label').textContent=({en:'Follow our moments',fr:'Suivez nos moments',ar:'تابع لحظاتنا',hi:'हमारे पलों से जुड़ें',zh:'关注我们的精彩时刻'})[lang];
 }
+let guestOffersLoaded=false;
 /* ---------- guest site ---------- */
 function paint(){
   const t=L[lang],all=cat==='all';
@@ -119,7 +120,7 @@ function paint(){
     :`<div class='bn'><div class='m'>${md(secs[cat])}</div><div class='ct'><small>${esc(t.eb)}</small><h3 class='gold'>${esc(t[cat])}</h3><div class='ul'></div></div></div>`;
   const searching=!!offerQuery.trim(),v=filteredOffers(all?(searching?live:[]):live.filter(o=>o.category===cat));
   $('#ti').hidden=searching;
-  $('#gr').innerHTML=all&&!searching?'':v.length?v.map((o,i)=>cardHTML(o,t,i)).join(''):`<p class='empty'>${esc(searching?EXPERIENCE_UI[lang].noresults:t.empty)}</p>`;
+  $('#gr').innerHTML=all&&!searching?'':!guestOffersLoaded?`<p class='empty' role='status'>${esc(({en:'Loading offers…',fr:'Chargement des offres…',ar:'جارٍ تحميل العروض…',hi:'ऑफ़र लोड हो रहे हैं…',zh:'正在加载优惠…'})[lang])}</p>`:v.length?v.map((o,i)=>cardHTML(o,t,i)).join(''):`<p class='empty'>${esc(searching?EXPERIENCE_UI[lang].noresults:t.empty)}</p>`;
   document.querySelectorAll('.rv:not(.in)').forEach(n=>io?io.observe(n):n.classList.add('in'));
   observeOfferImpressions();slow()
 }
@@ -135,12 +136,12 @@ async function load(){
     ];
     const results=await Promise.allSettled(queries),read=i=>results[i].status==='fulfilled'&&!results[i].value.error?results[i].value.data:null;
     const a=read(0),b=read(1),h=read(2),c=read(3);
-    if(a!==null)offers=a||[];
+    if(a!==null){offers=a||[];guestOffersLoaded=true}
     if(b!==null){secs={};(b||[]).forEach(r=>secs[r.category]=r)}
     if(c!==null){cfg={};(c||[]).forEach(r=>cfg[r.key]=r.value)}
     if(h!==null)hrows=h||[];
     if(first){first=false;heroStart(h||[])}
-    const signature=JSON.stringify([offers,secs,cfg,hrows,today()]);
+    const signature=JSON.stringify([offers,secs,cfg,hrows,today(),guestOffersLoaded]);
     if(signature!==lastGuestSignature){lastGuestSignature=signature;paint()}
     const failed=results.some(r=>r.status==='rejected'||r.value.error);
     $('#guest-load-status').hidden=!failed;
