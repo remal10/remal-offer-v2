@@ -56,7 +56,7 @@ const cta=(x,t,category)=>{
   const direct=!!cfg[category+'_phone'];
   const callLabel=direct?({en:'Call the team',fr:'Appeler le responsable',ar:'اتصل بالفريق',hi:'टीम को कॉल करें',zh:'致电服务团队'})[lang]:t.call;
   if(!w&&!p)return `<div class='ask'>${esc(t.ask)}</div>`;
-  return `${w?bookingFields():''}<div class='cta'>${w?`<a class='btn solid' target='_blank' rel='noopener' data-booking-base='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}' href='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}'>${esc(t.wa)}</a>`:''}${p?`<a class='btn' href='tel:${p}'>${esc(callLabel)}</a>`:''}</div>`
+  return `${w?bookingFields():''}<div class='cta'>${w?`<a class='btn solid' target='_blank' rel='noopener' data-metric='whatsapp' data-booking-base='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}' href='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}'>${esc(t.wa)}</a>`:''}${p?`<a class='btn' data-metric='call' href='tel:${p}'>${esc(callLabel)}</a>`:''}</div>`
 };
 
 /* ---------- hero rotation ---------- */
@@ -121,7 +121,7 @@ function paint(){
   $('#ti').hidden=searching;
   $('#gr').innerHTML=all&&!searching?'':v.length?v.map((o,i)=>cardHTML(o,t,i)).join(''):`<p class='empty'>${esc(searching?EXPERIENCE_UI[lang].noresults:t.empty)}</p>`;
   document.querySelectorAll('.rv:not(.in)').forEach(n=>io?io.observe(n):n.classList.add('in'));
-  slow()
+  observeOfferImpressions();slow()
 }
 let loadingGuest=false;
 async function load(){
@@ -151,7 +151,7 @@ setInterval(()=>{if(!document.hidden&&!document.body.classList.contains('st')&&!
 addEventListener('online',()=>{if(!document.body.classList.contains('st'))load()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!document.body.classList.contains('st'))load()});
 
-const closeM=()=>{$('#md').classList.remove('on');document.body.style.overflow='';if(previewMedia){URL.revokeObjectURL(previewMedia);previewMedia=null}if(previewFocus){previewFocus.focus();previewFocus=null}};
+const closeM=()=>{currentTrackedOffer=null;$('#md').classList.remove('on');document.body.style.overflow='';if(previewMedia){URL.revokeObjectURL(previewMedia);previewMedia=null}if(previewFocus){previewFocus.focus();previewFocus=null}};
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&$('#md').classList.contains('on')){closeM();return}
   const card=e.target.closest('.card');
@@ -165,7 +165,7 @@ document.addEventListener('click',e=>{
     $('#bx').dir=lang==='ar'?'rtl':'ltr';$('#bx').lang=lang;
     const o=offers.find(x=>x.id===k.dataset.id);if(!o)return;const x=tr(o),t=L[lang],b=BD[o.badge];
     $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description||'')}</p>${offerFacts(x)}${cta(x,t,o.category)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
-    previewFocus=k;$('#md').classList.add('on');document.body.style.overflow='hidden';$('#xc2').focus();slow()
+    currentTrackedOffer=o.id;trackMetric('offer_view',o.id);previewFocus=k;$('#md').classList.add('on');document.body.style.overflow='hidden';$('#xc2').focus();slow()
   }
   else if(['md','xc','xc2'].includes(e.target.id))closeM()
 });
@@ -201,13 +201,20 @@ addEventListener('scroll',()=>{
 /* ---------- staff dashboard ---------- */
 $('#tl').innerHTML=LG.map(l=>`<div class='lb'>${LN[l]}</div><input dir='auto' id='ti_${l}' placeholder='Title (${LN[l]})'><input dir='auto' id='tg_${l}' placeholder='Short teaser line, optional (${LN[l]})'><textarea dir='auto' id='td_${l}' rows='3' placeholder='Description (${LN[l]})'></textarea>${['location','hours','basis','conditions'].map(k=>`<label class='note'>${k}<input dir='auto' id='detail_${k}_${l}' maxlength='300'></label>`).join('')}`).join('');
 const show=p=>{$('#lgn').style.display=p?'none':'grid';$('#pn').style.display=p?'block':'none'};
+let staffProfile=null;
 async function gate(){
-  const {data:{session}}=await S.auth.getSession();
-  if(!session){show(false);return}
-  const {data}=await S.from('staff_emails').select('email').maybeSingle();
-  if(data){show(true);staffLoad();secLoad();heroLoad();cfgLoad();annLoad()}
-  else{show(false);$('#ms').textContent='This account does not have access to the staff dashboard.'}
+  try{
+    const {data:{session}}=await S.auth.getSession();
+    if(!session){staffProfile=null;show(false);return}
+    const {data,error}=await S.from('staff_emails').select('email,app_role,section').maybeSingle();
+    if(error)throw error;
+    if(!data){show(false);$('#ms').textContent='This account does not have access to the staff dashboard.';return}
+    staffProfile=data;show(true);applyStaffScope();
+    staffLoad();secLoad();statsLoad();historyLoad();
+    if(data.app_role==='admin'){heroLoad();cfgLoad();annLoad();teamLoad()}
+  }catch(e){show(false);$('#ms').textContent=e.message||'Could not verify your access. Try again.'}
 }
+
 async function route(){
   const h=location.hash,s=h==='#staff';
   document.body.classList.toggle('st',s);
@@ -217,7 +224,7 @@ async function route(){
 $('#tb').onclick=e=>{
   const t=e.target.dataset.t;if(!t)return;
   document.querySelectorAll('#tb button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['hero','sec','off','ann','set'].forEach(x=>$('#p-'+x).classList.toggle('on',x===t))
+  ['hero','sec','off','ann','set','stats','history','team'].forEach(x=>$('#p-'+x).classList.toggle('on',x===t))
 };
 
 /* home images */
@@ -247,14 +254,14 @@ $('#hf').onchange=async e=>{
 $('#hg').onclick=async e=>{
   const t=e.target.dataset.ht,d=e.target.dataset.hd;
   if(t){const h=hrows.find(x=>x.id===t);await S.from('hero_images').update({active:!h.active}).eq('id',t);heroLoad()}
-  if(d&&confirm('Delete this image?')){const h=hrows.find(x=>x.id===d);await S.from('hero_images').delete().eq('id',d);await S.storage.from('offers').remove([h.media_path]);heroLoad()}
+  if(d&&confirm('Delete this image?')){const h=hrows.find(x=>x.id===d);await S.from('hero_images').delete().eq('id',d);/* Retained for History restoration. */heroLoad()}
 };
 
 /* section images */
 async function secLoad(){
   const {data}=await S.from('sections').select('*');
   secs={};(data||[]).forEach(r=>{secs[r.category]=r});
-  $('#sc').innerHTML=CT.map(c=>{const s=secs[c];return `<div class='li'><span class='row'><span class='th'><span class='m'>${md(s)}</span></span><b style='text-transform:capitalize'>${c}</b></span><span class='row'><input type='file' accept='image/*,video/*' data-sf='${c}' style='max-width:210px'>${s&&s.media_path?`<button class='sm' data-sr='${c}'>Remove</button>`:''}</span></div>`}).join('')
+  $('#sc').innerHTML=CT.filter(c=>!staffProfile||staffProfile.app_role==='admin'||c===staffProfile.section).map(c=>{const s=secs[c];return `<div class='li'><span class='row'><span class='th'><span class='m'>${md(s)}</span></span><b style='text-transform:capitalize'>${c}</b></span><span class='row'><input type='file' accept='image/*,video/*' data-sf='${c}' style='max-width:210px'>${s&&s.media_path?`<button class='sm' data-sr='${c}'>Remove</button>`:''}</span></div>`}).join('')
 }
 $('#sc').onchange=async e=>{
   const c=e.target.dataset.sf,f=e.target.files[0],m=$('#smsg');
@@ -266,13 +273,13 @@ $('#sc').onchange=async e=>{
     const old=secs[c]&&secs[c].media_path;
     const r=await S.from('sections').upsert({category:c,media_path:p,media_type:f.type.startsWith('video')?'video':'image',updated_at:new Date().toISOString()});
     if(r.error)throw r.error;
-    if(old)await S.storage.from('offers').remove([old]);
+    /* Retained for History restoration. */
     m.textContent='Section image updated ✓';secLoad()
   }catch(x){m.textContent=x.message}
 };
 $('#sc').onclick=async e=>{
   const c=e.target.dataset.sr;
-  if(c&&confirm('Remove this image?')){const old=secs[c].media_path;await S.from('sections').update({media_path:null,media_type:null}).eq('category',c);if(old)await S.storage.from('offers').remove([old]);secLoad()}
+  if(c&&confirm('Remove this image?')){const old=secs[c].media_path;await S.from('sections').update({media_path:null,media_type:null}).eq('category',c);/* Retained for History restoration. */;secLoad()}
 };
 
 /* offers */
@@ -293,6 +300,7 @@ $('#vu').addEventListener('input',dateFeedback);
 $('#pb').addEventListener('change',dateFeedback);
 let previewMedia=null,previewFocus=null;
 function previewOffer(o,file){
+  currentTrackedOffer=null;
   if(previewMedia){URL.revokeObjectURL(previewMedia);previewMedia=null}
   const x=tr(o),t=L[lang],b=BD[o.badge];
   let media=md(o);
@@ -308,7 +316,7 @@ $('#preview-offer').onclick=()=>{
 async function staffLoad(){
   const {data,error}=await S.from('offers').select('*').order('featured',{ascending:false}).order('sort_order').order('created_at',{ascending:false});
   if(error){$('#fmsg').textContent=error.message;return}
-  staffList=data||[];paintOverview();
+  staffList=(data||[]).filter(o=>!staffProfile||staffProfile.app_role==='admin'||o.category===staffProfile.section);paintOverview();
   $('#ls').innerHTML=staffList.map(o=>`<div class='li'><span><span class='sm' style='display:inline-block;color:${offerStatus(o)==='Published'?'#b9dfad':offerStatus(o)==='Expired'?'#ffb4a8':'#f3dc8f'}'>${offerStatus(o)}</span> ${o.featured?'★ ':''}<b>${esc(tr2(o))}</b><br><span class='note'>Translations: ${LG.filter(l=>o.translations?.[l]?.title&&o.translations?.[l]?.description).map(l=>LN[l]).join(' · ')||'Incomplete'}</span><br><span class='note'>${esc(o.category)} · ${esc(o.price||'')} · ${readableDate(o.valid_until)}</span></span><span class='row'><button class='sm' data-preview='${o.id}'>Preview</button><button class='sm' data-e='${o.id}'>Edit</button><button class='sm' data-d='${o.id}'>Delete</button></span></div>`).join('')||`<p class='note'>No offers yet.</p>`
 }
 $('#ls').onclick=async e=>{
@@ -326,11 +334,11 @@ $('#ls').onclick=async e=>{
   if(b.dataset.d&&confirm('Delete this offer?')){
     const o=staffList.find(x=>x.id===b.dataset.d);
     const {error}=await S.from('offers').delete().eq('id',o.id);if(error){$('#fmsg').textContent=error.message;return}
-    if(o.media_path)await S.storage.from('offers').remove([o.media_path]);
+    // Keep media so deleted offers can be restored from History.
     staffLoad();load()
   }
 };
-$('#cn').onclick=()=>{editId=editOld=null;$('#fm').reset();dateFeedback();$('#fmsg').textContent=''};
+$('#cn').onclick=()=>{editId=editOld=null;$('#fm').reset();applyStaffScope();dateFeedback();$('#fmsg').textContent=''};
 let savingOffer=false;
 $('#fm').onsubmit=async e=>{
   e.preventDefault();if(savingOffer)return;savingOffer=true;
@@ -342,15 +350,15 @@ $('#fm').onsubmit=async e=>{
     if(r.published&&r.valid_until&&r.valid_until<today()){dateFeedback();m.textContent='Cannot publish an expired offer. Correct the end date, clear it, or uncheck Published to save as a draft.';$('#vu').focus();return}
     const f=$('#fl').files[0];
     if(f){
-      const p=Date.now()+'-'+f.name.replace(/[^a-z0-9.]+/gi,'_');
+      const p=$('#ct').value+'/'+Date.now()+'-'+f.name.replace(/[^a-z0-9.]+/gi,'_');
       await up(p,f);uploaded=p;
       r.media_path=p;r.media_type=f.type.startsWith('video')?'video':'image';
     }
     const q=editId?S.from('offers').update(r).eq('id',editId):S.from('offers').insert(r);
-    const {error}=await q;if(error)throw error;saved=true;
-    if(uploaded&&previousMedia)S.storage.from('offers').remove([previousMedia]).catch(()=>{});
+    const {error}=await q.select('id').single();if(error)throw error;saved=true;
+    // Historical media is retained for restoring older versions.
     editId=editOld=null;$('#fm').reset();dateFeedback();m.textContent='Saved ✓';staffLoad();load()
-  }catch(x){m.textContent=x.message;if(uploaded&&!saved)S.storage.from('offers').remove([uploaded]).catch(()=>{})}
+  }catch(x){m.textContent=x.message;/* Retain the upload; storage writes are audited separately. */}
   finally{savingOffer=false;if(button)button.disabled=false}
 };
 
@@ -536,4 +544,74 @@ $('#hg').addEventListener('change',async e=>{
 });
 $('#offer-preview-language').innerHTML=LG.map(l=>'<option value="'+l+'">'+LN[l]+'</option>').join('');
 
-dir();load();route();addEventListener('hashchange',route);
+/* Centralized analytics; no guest names, contact details or booking inputs are recorded. */
+let currentTrackedOffer=null,metricVisitor,metricSession;
+const metricSent=new Set();
+const newMetricID=()=>crypto.randomUUID();
+try{metricVisitor=localStorage.getItem('remal_visitor')||newMetricID();localStorage.setItem('remal_visitor',metricVisitor)}catch{metricVisitor=newMetricID()}
+try{metricSession=sessionStorage.getItem('remal_session')||newMetricID();sessionStorage.setItem('remal_session',metricSession)}catch{metricSession=newMetricID()}
+let metricSource=new URLSearchParams(location.search).get('source')==='qr'?'qr':'direct';
+try{if(metricSource==='qr')sessionStorage.setItem('remal_source','qr');else metricSource=sessionStorage.getItem('remal_source')==='qr'?'qr':'direct'}catch{}
+async function trackMetric(kind,offer=null){
+  if(location.hash==='#staff'||staffProfile||navigator.doNotTrack==='1')return;
+  const key=kind+':'+(offer||'');if(metricSent.has(key))return;metricSent.add(key);
+  try{const {error}=await S.rpc('remal_track',{p_visitor:metricVisitor,p_session:metricSession,p_kind:kind,p_offer:offer,p_source:metricSource,p_language:lang});if(error)metricSent.delete(key)}catch{metricSent.delete(key)}
+}
+const impressionObserver='IntersectionObserver' in window?new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>=.5){trackMetric('impression',e.target.dataset.id);impressionObserver.unobserve(e.target)}})
+},{threshold:.5}):null;
+function observeOfferImpressions(){if(impressionObserver){impressionObserver.disconnect();document.querySelectorAll('.card[data-id]').forEach(e=>impressionObserver.observe(e))}}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-metric]');if(a&&currentTrackedOffer&&a.getAttribute('aria-disabled')!=='true')trackMetric(a.dataset.metric,currentTrackedOffer)});
+function startMetrics(){if(location.hash!=='#staff'){trackMetric('visit');if(metricSource==='qr')trackMetric('qr_open')}}
+addEventListener('hashchange',startMetrics);
+
+function applyStaffScope(){
+  if(!staffProfile)return;const admin=staffProfile.app_role==='admin';
+  document.querySelectorAll('#tb [data-t]').forEach(b=>{b.hidden=!admin&&['hero','ann','set','team'].includes(b.dataset.t)});
+  const select=$('#ct');Array.from(select.options||[]).forEach(o=>o.disabled=!admin&&o.value!==staffProfile.section);
+  if(!admin)select.value=staffProfile.section;
+  if(!admin&&document.querySelector('#tb .on')?.hidden){document.querySelectorAll('#tb button').forEach(b=>b.classList.toggle('on',b.dataset.t==='off'));document.querySelectorAll('.pnl').forEach(p=>p.classList.toggle('on',p.id==='p-off'))}
+  $('#staff-scope').textContent=admin?'Administrator':'Section: '+staffProfile.section
+}
+async function statsLoad(){
+  const host=$('#stats-output');host.textContent='Loading…';
+  const {data,error}=await S.rpc('remal_stats',{p_days:Number($('#stats-days').value)||30});
+  if(error){host.textContent=error.message;return}
+  const t=data.totals||{},labels={visits:'Visits',qr_opens:'QR openings',visitors:'Estimated unique browsers',impressions:'Offer card impressions',offer_views:'Offer detail views',whatsapp:'WhatsApp clicks',calls:'Phone clicks'};
+  host.innerHTML='<div class="summary-grid">'+Object.entries(labels).map(([k,label])=>'<div class="summary-metric"><b>'+Number(t[k]||0)+'</b><span>'+label+'</span></div>').join('')+'</div>'+
+  (data.scope==='section'?'<p class="note">Only activity on your section’s offers is included. Hotel visits and QR openings are administrator-only.</p>':'')+
+  '<h3>By offer</h3><div style="overflow:auto"><table><thead><tr><th>Offer</th><th>Impressions</th><th>Details</th><th>WhatsApp</th><th>Calls</th></tr></thead><tbody>'+
+  (data.offers||[]).map(o=>'<tr><td>'+esc(o.title||o.offer_id)+'</td><td>'+Number(o.impressions)+'</td><td>'+Number(o.views)+'</td><td>'+Number(o.whatsapp)+'</td><td>'+Number(o.calls)+'</td></tr>').join('')+'</tbody></table></div>'+
+  '<h3>Daily activity (UAE time)</h3><div style="overflow:auto"><table><thead><tr><th>Date</th><th>QR openings</th><th>Offer details</th><th>Unique browsers</th></tr></thead><tbody>'+(data.daily||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+Number(d.qr_opens)+'</td><td>'+Number(d.offer_views)+'</td><td>'+Number(d.visitors)+'</td></tr>').join('')+'</tbody></table></div>'
+}
+$('#stats-days').onchange=statsLoad;$('#stats-refresh').onclick=statsLoad;
+async function historyLoad(){
+  const host=$('#history-output'),{data,error}=await S.rpc('remal_history');
+  if(error){host.textContent=error.message;return}
+  host.innerHTML=(data||[]).map(h=>'<div class="li"><span><b>'+esc(h.title)+'</b><br><span class="note">'+esc(h.entity)+' · '+esc(h.operation)+' · '+esc(new Date(h.at).toLocaleString('en-GB',{timeZone:'Asia/Dubai'}))+'<br>'+esc(h.actor)+'</span></span>'+(h.restorable?'<button class="sm" data-restore="'+Number(h.id)+'">Restore earlier version</button>':'')+'</div>').join('')||'<p class="note">No changes recorded yet. History starts with this update.</p>'
+}
+$('#history-refresh').onclick=historyLoad;
+$('#history-output').onclick=async e=>{
+  const b=e.target.closest('[data-restore]');if(!b||!confirm('Restore the version before this change? Offers and announcements are restored as drafts.'))return;
+  b.disabled=true;const {error}=await S.rpc('remal_restore',{p_id:Number(b.dataset.restore)});
+  if(error){$('#history-msg').textContent=error.message;b.disabled=false;return}
+  $('#history-msg').textContent='Restored ✓';historyLoad();staffLoad();secLoad();load();if(staffProfile?.app_role==='admin'){heroLoad();annLoad();cfgLoad()}
+};
+async function teamLoad(){
+  const {data,error}=await S.rpc('remal_staff_list');if(error){$('#team-list').textContent=error.message;return}
+  $('#team-list').innerHTML=(data||[]).map(s=>'<div class="li"><span>'+esc(s.email)+'<br><span class="note">'+esc(s.app_role)+' '+esc(s.section||'')+'</span></span><button class="sm" data-team-remove="'+esc(s.email)+'">Remove access</button></div>').join('')
+}
+$('#team-form').onsubmit=async e=>{
+  e.preventDefault();const b=e.submitter;b.disabled=true;
+  try{
+    const {error}=await S.rpc('remal_staff_set',{p_email:$('#team-email').value.trim(),p_role:$('#team-role').value,p_section:$('#team-section').value,p_remove:false});
+    if(error)throw error;$('#team-msg').textContent='Access saved. The person can use an existing account or Create my account on the sign-in page.';teamLoad();historyLoad()
+  }catch(x){$('#team-msg').textContent=x.message}finally{b.disabled=false}
+};
+$('#team-list').onclick=async e=>{
+  const b=e.target.closest('[data-team-remove]');if(!b||!confirm('Remove dashboard access for '+b.dataset.teamRemove+'?'))return;
+  const {error}=await S.rpc('remal_staff_set',{p_email:b.dataset.teamRemove,p_remove:true});
+  if(error)$('#team-msg').textContent=error.message;else{teamLoad();historyLoad()}
+};
+
+dir();load();route();startMetrics();addEventListener('hashchange',route);
