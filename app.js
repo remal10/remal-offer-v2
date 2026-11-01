@@ -56,7 +56,7 @@ const cta=(x,t,category)=>{
   const direct=!!cfg[category+'_phone'];
   const callLabel=direct?({en:'Call the team',fr:'Appeler le responsable',ar:'اتصل بالفريق',hi:'टीम को कॉल करें',zh:'致电服务团队'})[lang]:t.call;
   if(!w&&!p)return `<div class='ask'>${esc(t.ask)}</div>`;
-  return `<div class='cta'>${w?`<a class='btn solid' target='_blank' rel='noopener' href='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}'>${esc(t.wa)}</a>`:''}${p?`<a class='btn' href='tel:${p}'>${esc(callLabel)}</a>`:''}</div>`
+  return `${w?bookingFields():''}<div class='cta'>${w?`<a class='btn solid' target='_blank' rel='noopener' data-booking-base='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}' href='https://wa.me/${w}?text=${encodeURIComponent(t.pre+(x.title||''))}'>${esc(t.wa)}</a>`:''}${p?`<a class='btn' href='tel:${p}'>${esc(callLabel)}</a>`:''}</div>`
 };
 
 /* ---------- hero rotation ---------- */
@@ -106,7 +106,7 @@ function paintInstagram(){
 /* ---------- guest site ---------- */
 function paint(){
   const t=L[lang],all=cat==='all';
-  paintInstagram();paintAnnouncements();
+  paintInstagram();paintAnnouncements();paintDiscovery();
   document.querySelectorAll('[data-i]').forEach(e=>{if(e.hasAttribute('data-split'))split(e,SLOGAN);else e.textContent=t[e.dataset.i]});
   $('#ibd').textContent=dp?t.instD:t.instI;
   $('#lg').innerHTML=LG.map(l=>`<button class='${l===lang?'on':''}' data-l='${l}'>${LN[l]}</button>`).join('');
@@ -116,8 +116,9 @@ function paint(){
   $('#ti').innerHTML=all
     ?`<div class='tiles'>${CT.map((c,i)=>`<div class='tile' data-c='${c}' style='animation-delay:${i*100}ms'><div class='m'>${md(secs[c])}</div><div class='ct'><small>0${i+1}</small><h3>${esc(t[c])}</h3><div class='ul'></div></div></div>`).join('')}</div>`
     :`<div class='bn'><div class='m'>${md(secs[cat])}</div><div class='ct'><small>${esc(t.eb)}</small><h3 class='gold'>${esc(t[cat])}</h3><div class='ul'></div></div></div>`;
-  const v=all?[]:live.filter(o=>o.category===cat);
-  $('#gr').innerHTML=all?'':v.length?v.map((o,i)=>cardHTML(o,t,i)).join(''):`<p class='empty'>${esc(t.empty)}</p>`;
+  const searching=!!offerQuery.trim(),v=filteredOffers(all?(searching?live:[]):live.filter(o=>o.category===cat));
+  $('#ti').hidden=searching;
+  $('#gr').innerHTML=all&&!searching?'':v.length?v.map((o,i)=>cardHTML(o,t,i)).join(''):`<p class='empty'>${esc(searching?EXPERIENCE_UI[lang].noresults:t.empty)}</p>`;
   document.querySelectorAll('.rv:not(.in)').forEach(n=>io?io.observe(n):n.classList.add('in'));
   slow()
 }
@@ -160,7 +161,7 @@ document.addEventListener('click',e=>{
   else if(c){location.hash=c.dataset.c==='all'?'offres':'s-'+c.dataset.c}
   else if(k){
     const o=offers.find(x=>x.id===k.dataset.id);if(!o)return;const x=tr(o),t=L[lang],b=BD[o.badge];
-    $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description||'')}</p>${cta(x,t,o.category)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
+    $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description||'')}</p>${offerFacts(x)}${cta(x,t,o.category)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
     previewFocus=k;$('#md').classList.add('on');document.body.style.overflow='hidden';$('#xc2').focus();slow()
   }
   else if(['md','xc','xc2'].includes(e.target.id))closeM()
@@ -195,7 +196,7 @@ addEventListener('scroll',()=>{
 },{passive:true});
 
 /* ---------- staff dashboard ---------- */
-$('#tl').innerHTML=LG.map(l=>`<div class='lb'>${LN[l]}</div><input dir='auto' id='ti_${l}' placeholder='Title (${LN[l]})'><input dir='auto' id='tg_${l}' placeholder='Short teaser line, optional (${LN[l]})'><textarea dir='auto' id='td_${l}' rows='3' placeholder='Description (${LN[l]})'></textarea>`).join('');
+$('#tl').innerHTML=LG.map(l=>`<div class='lb'>${LN[l]}</div><input dir='auto' id='ti_${l}' placeholder='Title (${LN[l]})'><input dir='auto' id='tg_${l}' placeholder='Short teaser line, optional (${LN[l]})'><textarea dir='auto' id='td_${l}' rows='3' placeholder='Description (${LN[l]})'></textarea>${['location','hours','basis','conditions'].map(k=>`<label class='note'>${k}<input dir='auto' id='detail_${k}_${l}' maxlength='300'></label>`).join('')}`).join('');
 const show=p=>{$('#lgn').style.display=p?'none':'grid';$('#pn').style.display=p?'block':'none'};
 async function gate(){
   const {data:{session}}=await S.auth.getSession();
@@ -277,7 +278,7 @@ const offerStatus=o=>!o.published?'Draft':alive(o)?'Published':'Expired';
 const readableDate=value=>{if(!value)return 'No expiry date';return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(new Date(value+'T12:00:00'))};
 const readOfferForm=()=>{
   const translations={};
-  LG.forEach(l=>{const title=$('#ti_'+l).value.trim(),tagline=$('#tg_'+l).value.trim(),description=$('#td_'+l).value.trim();if(title||tagline||description)translations[l]={title,tagline,description}});
+  LG.forEach(l=>{const title=$('#ti_'+l).value.trim(),tagline=$('#tg_'+l).value.trim(),description=$('#td_'+l).value.trim();if(title||tagline||description)translations[l]={title,tagline,description,...Object.fromEntries(['location','hours','basis','conditions'].map(k=>[k,$('#detail_'+k+'_'+l).value.trim()]))}});
   return {category:$('#ct').value,price:$('#pr').value.trim()||null,sort_order:+$('#so').value||0,published:$('#pb').checked,featured:$('#ft').checked,badge:$('#bg').value||null,old_price:$('#op').value.trim()||null,valid_until:$('#vu').value||null,translations}
 };
 function dateFeedback(){
@@ -304,8 +305,8 @@ $('#preview-offer').onclick=()=>{
 async function staffLoad(){
   const {data,error}=await S.from('offers').select('*').order('featured',{ascending:false}).order('sort_order').order('created_at',{ascending:false});
   if(error){$('#fmsg').textContent=error.message;return}
-  staffList=data||[];
-  $('#ls').innerHTML=staffList.map(o=>`<div class='li'><span><span class='sm' style='display:inline-block;color:${offerStatus(o)==='Published'?'#b9dfad':offerStatus(o)==='Expired'?'#ffb4a8':'#f3dc8f'}'>${offerStatus(o)}</span> ${o.featured?'★ ':''}<b>${esc(tr2(o))}</b><br><span class='note'>${esc(o.category)} · ${esc(o.price||'')} · ${readableDate(o.valid_until)}</span></span><span class='row'><button class='sm' data-preview='${o.id}'>Preview</button><button class='sm' data-e='${o.id}'>Edit</button><button class='sm' data-d='${o.id}'>Delete</button></span></div>`).join('')||`<p class='note'>No offers yet.</p>`
+  staffList=data||[];paintOverview();
+  $('#ls').innerHTML=staffList.map(o=>`<div class='li'><span><span class='sm' style='display:inline-block;color:${offerStatus(o)==='Published'?'#b9dfad':offerStatus(o)==='Expired'?'#ffb4a8':'#f3dc8f'}'>${offerStatus(o)}</span> ${o.featured?'★ ':''}<b>${esc(tr2(o))}</b><br><span class='note'>Translations: ${LG.filter(l=>o.translations?.[l]?.title&&o.translations?.[l]?.description).map(l=>LN[l]).join(' · ')||'Incomplete'}</span><br><span class='note'>${esc(o.category)} · ${esc(o.price||'')} · ${readableDate(o.valid_until)}</span></span><span class='row'><button class='sm' data-preview='${o.id}'>Preview</button><button class='sm' data-e='${o.id}'>Edit</button><button class='sm' data-d='${o.id}'>Delete</button></span></div>`).join('')||`<p class='note'>No offers yet.</p>`
 }
 $('#ls').onclick=async e=>{
   const b=e.target.closest('button');if(!b)return;
@@ -315,7 +316,7 @@ $('#ls').onclick=async e=>{
     editId=o.id;editOld=o;
     $('#ct').value=o.category;$('#pr').value=o.price||'';$('#so').value=o.sort_order;$('#pb').checked=o.published;
     $('#ft').checked=!!o.featured;$('#bg').value=o.badge||'';$('#op').value=o.old_price||'';$('#vu').value=o.valid_until||'';
-    LG.forEach(l=>{const x=(o.translations||{})[l]||{};$('#ti_'+l).value=x.title||'';$('#tg_'+l).value=x.tagline||'';$('#td_'+l).value=x.description||''});
+    LG.forEach(l=>{const x=(o.translations||{})[l]||{};$('#ti_'+l).value=x.title||'';$('#tg_'+l).value=x.tagline||'';$('#td_'+l).value=x.description||'';['location','hours','basis','conditions'].forEach(k=>$('#detail_'+k+'_'+l).value=x[k]||'')});
     $('#fmsg').textContent='Editing (leave the file empty to keep the current media).';
     dateFeedback();$('#fm').scrollIntoView()
   }
@@ -407,7 +408,7 @@ function annCard(a){
 function paintAnnouncements(){
   clearInterval(annTimer);
   const host=$('#announcements');if(!host)return;
-  const a=annValues(cfg).filter(x=>annActive(x));
+  const a=annValues(cfg).filter(x=>annActive(x)&&(!x.target||x.target==='all'||x.target===cat));
   host.hidden=!a.length;if(!a.length){host.innerHTML='';return}
   annIndex=((annIndex%a.length)+a.length)%a.length;
   const t=ANN_TEXT[lang];
@@ -423,7 +424,7 @@ document.addEventListener('visibilitychange',paintAnnouncements);
 $('#ann-translations').innerHTML=LG.map(l=>`<fieldset class="f"><legend class="lb">${LN[l]}</legend><label class="note">Title<input id="ann-title-${l}" dir="auto" maxlength="120"></label><label class="note">Message<textarea id="ann-body-${l}" dir="auto" maxlength="700" rows="3"></textarea></label><label class="note">Link label (optional)<input id="ann-label-${l}" dir="auto" maxlength="60"></label></fieldset>`).join('');
 function readAnnouncement(){
   const translations={};LG.forEach(l=>{translations[l]={title:$('#ann-title-'+l).value.trim(),body:$('#ann-body-'+l).value.trim(),linkLabel:$('#ann-label-'+l).value.trim()}});
-  return {kind:$('#ann-kind').value,start:$('#ann-start').value,end:$('#ann-end').value,link:$('#ann-link').value.trim(),published:$('#ann-published').checked,translations}
+  return {target:$('#ann-target').value,kind:$('#ann-kind').value,start:$('#ann-start').value,end:$('#ann-end').value,link:$('#ann-link').value.trim(),published:$('#ann-published').checked,translations}
 }
 function resetAnnouncement(){annEdit=null;$('#ann-form').reset();$('#ann-editor-preview').innerHTML='';$('#ann-msg').textContent=''}
 async function annLoad(){
@@ -435,7 +436,7 @@ async function annLoad(){
     const status=!a.published?'Draft':a.end&&a.end<today()?'Expired':a.start&&a.start>today()?'Scheduled':'Published';
     return `<div class="li"><span><b>${esc(annCopy(a).title||'(untitled)')}</b><br><span class="note">${status} · ${a.start?readableDate(a.start):'Immediately'} — ${a.end?readableDate(a.end):'No expiry'}</span></span><span class="row"><button class="sm" data-ann-edit="${esc(a.key)}">Edit</button><button class="sm" data-ann-delete="${esc(a.key)}">Delete</button></span></div>`
   }).join('')||'<p class="note">No announcements yet.</p>';
-  paintAnnouncements()
+  paintAnnouncements();paintOverview()
 }
 $('#ann-cancel').onclick=resetAnnouncement;
 $('#ann-preview').onclick=()=>{$('#ann-editor-preview').innerHTML=annCard(readAnnouncement())};
@@ -443,7 +444,7 @@ $('#ann-list').onclick=async e=>{
   const edit=e.target.closest('[data-ann-edit]'),del=e.target.closest('[data-ann-delete]');
   if(edit){
     const a=annRows.find(a=>a.key===edit.dataset.annEdit);if(!a)return;annEdit=a.key;
-    $('#ann-kind').value=a.kind;$('#ann-start').value=a.start||'';$('#ann-end').value=a.end||'';$('#ann-link').value=a.link||'';$('#ann-published').checked=!!a.published;
+    $('#ann-target').value=a.target||'all';$('#ann-kind').value=a.kind;$('#ann-start').value=a.start||'';$('#ann-end').value=a.end||'';$('#ann-link').value=a.link||'';$('#ann-published').checked=!!a.published;
     LG.forEach(l=>{const t=a.translations[l]||{};$('#ann-title-'+l).value=t.title||'';$('#ann-body-'+l).value=t.body||'';$('#ann-label-'+l).value=t.linkLabel||''});
     $('#ann-msg').textContent='Editing announcement';$('#ann-editor-preview').innerHTML='';$('#ann-form').scrollIntoView()
   }
@@ -467,5 +468,45 @@ $('#ann-form').onsubmit=async e=>{
     if(error)throw error;resetAnnouncement();m.textContent='Announcement saved ✓';await annLoad()
   }catch(x){m.textContent=x.message||'Could not save.'}finally{if(button)button.disabled=false}
 };
+
+/* Guest discovery and booking details */
+const EXPERIENCE_UI={"en":{"search":"Search experiences","all":"All sections","sort":"Sort offers","recommended":"Recommended","low":"Price: low to high","high":"Price: high to low","date":"Preferred date","people":"Number of guests","dateLine":"Date","peopleLine":"Guests","location":"Location","hours":"Hours","basis":"Price basis","conditions":"Conditions","noresults":"No matching offers","filters":"Find your experience"},"fr":{"search":"Rechercher une expérience","all":"Toutes les sections","sort":"Trier les offres","recommended":"Recommandées","low":"Prix croissant","high":"Prix décroissant","date":"Date souhaitée","people":"Nombre de personnes","dateLine":"Date","peopleLine":"Personnes","location":"Lieu","hours":"Horaires","basis":"Base du prix","conditions":"Conditions","noresults":"Aucune offre correspondante","filters":"Trouvez votre expérience"},"ar":{"search":"ابحث عن تجربة","all":"كل الأقسام","sort":"ترتيب العروض","recommended":"موصى به","low":"السعر من الأقل","high":"السعر من الأعلى","date":"التاريخ المفضل","people":"عدد الضيوف","dateLine":"التاريخ","peopleLine":"الضيوف","location":"الموقع","hours":"الأوقات","basis":"أساس السعر","conditions":"الشروط","noresults":"لا توجد عروض مطابقة","filters":"ابحث عن تجربتك"},"hi":{"search":"अनुभव खोजें","all":"सभी अनुभाग","sort":"ऑफ़र क्रम","recommended":"अनुशंसित","low":"कीमत: कम से अधिक","high":"कीमत: अधिक से कम","date":"पसंदीदा तारीख","people":"मेहमानों की संख्या","dateLine":"तारीख","peopleLine":"मेहमान","location":"स्थान","hours":"समय","basis":"मूल्य का आधार","conditions":"शर्तें","noresults":"कोई मिलान नहीं","filters":"अपना अनुभव खोजें"},"zh":{"search":"搜索体验","all":"所有分类","sort":"优惠排序","recommended":"推荐","low":"价格从低到高","high":"价格从高到低","date":"期望日期","people":"宾客人数","dateLine":"日期","peopleLine":"宾客","location":"地点","hours":"时间","basis":"价格单位","conditions":"条款","noresults":"没有匹配的优惠","filters":"寻找您的体验"}};
+let offerQuery='',offerSort='recommended';
+const priceNumber=o=>{const m=String(o.price||'').match(/\d+(?:[.,]\d+)?/);return m?Number(m[0].replace(',','.')):null};
+function filteredOffers(list){
+  const q=offerQuery.trim().toLocaleLowerCase();
+  const out=list.filter(o=>{const x=tr(o);return !q||[x.title,x.tagline,x.description,x.location,L[lang][o.category]].join(' ').toLocaleLowerCase().includes(q)});
+  if(offerSort!=='recommended')out.sort((a,b)=>{const x=priceNumber(a),y=priceNumber(b);if(x===null)return y===null?0:1;if(y===null)return -1;return offerSort==='low'?x-y:y-x});
+  return out
+}
+function paintDiscovery(){
+  const t=EXPERIENCE_UI[lang],search=$('#offer-search'),category=$('#offer-category'),sort=$('#offer-sort');
+  search.placeholder=t.search;search.setAttribute('aria-label',t.search);
+  category.innerHTML='<option value="all">'+esc(t.all)+'</option>'+CT.map(c=>'<option value="'+c+'">'+esc(L[lang][c])+'</option>').join('');category.value=cat;category.setAttribute('aria-label',t.all);
+  sort.innerHTML=['recommended','low','high'].map(k=>'<option value="'+k+'">'+esc(t[k])+'</option>').join('');sort.value=offerSort;sort.setAttribute('aria-label',t.sort);
+  $('#discovery-title').textContent=t.filters
+}
+function offerFacts(x){
+  const t=EXPERIENCE_UI[lang];return '<dl class="offer-facts">'+['location','hours','basis','conditions'].filter(k=>x[k]).map(k=>'<div><dt>'+esc(t[k])+'</dt><dd>'+esc(x[k])+'</dd></div>').join('')+'</dl>'
+}
+function bookingFields(){const t=EXPERIENCE_UI[lang];return '<div class="booking-fields"><label>'+esc(t.date)+'<input id="booking-date" type="date" min="'+today()+'"></label><label>'+esc(t.people)+'<input id="booking-guests" type="number" min="1" max="100" step="1" value="2"></label></div>'}
+document.addEventListener('input',e=>{
+  if(e.target.id==='offer-search'){offerQuery=e.target.value;paint()}
+  if(e.target.id==='booking-date'||e.target.id==='booking-guests'){
+    const link=$('#bx a[data-booking-base]');if(!link)return;
+    const d=$('#booking-date'),n=$('#booking-guests'),t=EXPERIENCE_UI[lang];
+    if(!d.checkValidity()||!n.checkValidity()){link.setAttribute('aria-disabled','true');return}
+    link.removeAttribute('aria-disabled');link.href=link.dataset.bookingBase+encodeURIComponent((d.value?'\n'+t.dateLine+': '+d.value:'')+'\n'+t.peopleLine+': '+n.value)
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='offer-category'){cat=e.target.value;location.hash=cat==='all'?'offres':'s-'+cat;paint()}
+  if(e.target.id==='offer-sort'){offerSort=e.target.value;paint()}
+});
+document.addEventListener('click',e=>{const a=e.target.closest('a[aria-disabled="true"]');if(a){e.preventDefault();$('#booking-date')?.reportValidity();$('#booking-guests')?.reportValidity()}});
+function paintOverview(){
+  const counts={Published:0,Draft:0,Expired:0};staffList.forEach(o=>counts[offerStatus(o)]++);
+  $('#dashboard-summary').innerHTML=Object.entries(counts).map(([k,v])=>'<div class="summary-metric"><b>'+v+'</b><span>'+k+' offers</span></div>').join('')+'<div class="summary-metric"><b>'+annRows.filter(a=>a.published&&(!a.end||a.end>=today())).length+'</b><span>Active / scheduled announcements</span></div>'
+}
 
 dir();load();route();addEventListener('hashchange',route);

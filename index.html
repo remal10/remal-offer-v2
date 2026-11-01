@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="https://remar-hotel-discovery.lovable.app/remal-logo.jpg">
 <link rel="icon" href="/icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;500&family=Inter:wght@300;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/styles.css"><style>.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-bottom:1.5rem}.summary-metric{display:grid;padding:1rem;background:#15130f;border:1px solid #d4af3733;border-radius:10px}.summary-metric b{font-size:1.8rem;color:var(--g2)}.summary-metric span{font-size:.8rem;color:var(--mut)}.booking-fields{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin:1rem 0}.booking-fields label{font-size:.8rem;color:var(--mut)}.offer-facts{margin:1rem 0}.offer-facts div{padding:.5rem 0;border-bottom:1px solid #d4af3722}.offer-facts dt{font-size:.7rem;color:var(--gold)}.offer-facts dd{white-space:pre-line;font-size:.9rem;overflow-wrap:anywhere}a[aria-disabled=true]{opacity:.5}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -59,6 +59,7 @@
     </div>
     <section id="announcements" aria-label="Hotel announcements" hidden></section>
     <div id="guest-load-status" hidden role="status"><p id="guest-load-message"></p><button type="button" class="sm" id="guest-retry" aria-label="Retry">↻</button></div>
+    <div class="f" id="discovery"><span class="lb" id="discovery-title"></span><input type="search" id="offer-search" maxlength="150"><div class="row"><select id="offer-category" style="flex:1"></select><select id="offer-sort" style="flex:1"></select></div></div>
     <div id="ti"></div>
     <div id="pl"></div>
     <div class="grid" id="gr"></div>
@@ -96,7 +97,7 @@
     <p class="msg" id="ms"></p>
   </div>
 
-  <div id="pn" style="display:none">
+  <div id="pn" style="display:none"><div id="dashboard-summary" class="summary-grid"></div>
     <div class="row" style="justify-content:flex-end;margin-bottom:.6rem"><button class="sm" id="bout">Sign out</button></div>
     <div class="tb" id="tb">
       <button class="on" data-t="hero">Home images</button>
@@ -140,7 +141,7 @@
       <div id="ls"></div>
     </div>
 
-    <div class="pnl" id="p-ann"><h3>Guest announcements</h3><p class="note">Published announcements appear below the home slideshow and on section pages. Complete all five languages before publishing.</p><form id="ann-form" class="f"><label class="note">Style<select id="ann-kind"><option value="news">Hotel news</option><option value="event">Event</option><option value="notice">Important notice</option></select></label><div class="row"><label class="note">Start date<input type="date" id="ann-start"></label><label class="note">End date<input type="date" id="ann-end"></label></div><div id="ann-translations"></div><label class="note">Optional destination link (https://…)<input type="url" dir="ltr" id="ann-link" placeholder="https://…"></label><label><input type="checkbox" id="ann-published" style="width:auto"> Published</label><div class="row"><button class="btn solid">Save announcement</button><button type="button" class="sm" id="ann-preview">Preview</button><button type="button" class="sm" id="ann-cancel">New / Cancel</button></div><p id="ann-msg" class="msg" aria-live="polite"></p><div id="ann-editor-preview"></div></form><div id="ann-list"></div></div>
+    <div class="pnl" id="p-ann"><h3>Guest announcements</h3><p class="note">Published announcements appear below the home slideshow and on section pages. Complete all five languages before publishing.</p><form id="ann-form" class="f"><label class="note">Audience<select id="ann-target"><option value="all">All sections</option><option value="restaurant">restaurant</option><option value="pool">pool</option><option value="bar">bar</option><option value="spa">spa</option><option value="services">services</option></select></label><label class="note">Style<select id="ann-kind"><option value="news">Hotel news</option><option value="event">Event</option><option value="notice">Important notice</option></select></label><div class="row"><label class="note">Start date<input type="date" id="ann-start"></label><label class="note">End date<input type="date" id="ann-end"></label></div><div id="ann-translations"></div><label class="note">Optional destination link (https://…)<input type="url" dir="ltr" id="ann-link" placeholder="https://…"></label><label><input type="checkbox" id="ann-published" style="width:auto"> Published</label><div class="row"><button class="btn solid">Save announcement</button><button type="button" class="sm" id="ann-preview">Preview</button><button type="button" class="sm" id="ann-cancel">New / Cancel</button></div><p id="ann-msg" class="msg" aria-live="polite"></p><div id="ann-editor-preview"></div></form><div id="ann-list"></div></div>
 <div class="pnl" id="p-set"><div class="f">\n<h3>Reservation contacts</h3><p class="note">Add the public booking numbers guests should use for each section. If a field is empty, its reception number below is used.</p><h3>Reception — fallback contacts</h3>
       <label class="note">WhatsApp number for reservations (country code, digits only)<input id="wa" placeholder="e.g. 971501234567"></label>
       <label class="note">Reception phone (shown as a Call button)<input id="ph" placeholder="e.g. +97121234567"></label>
@@ -149,7 +150,7 @@
 <fieldset class="f" style="margin:0"><legend class="lb">Bar</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_bar_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_bar_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
 <fieldset class="f" style="margin:0"><legend class="lb">Spa</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_spa_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_spa_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
 <fieldset class="f" style="margin:0"><legend class="lb">Services</legend><label class="note">Manager / team phone<input type="tel" dir="ltr" id="contact_services_phone" placeholder="+971501234567" autocomplete="off"></label><label class="note">Manager / team WhatsApp<input type="tel" dir="ltr" id="contact_services_whatsapp" placeholder="+971501234567" autocomplete="off"></label></fieldset>
-<h3>Hotel social media</h3><label class="note">Hotel Instagram URL<input type="url" dir="ltr" id="instagram-url" placeholder="https://www.instagram.com/remal.hotel/"></label><p class="note">Shown in the guest page footer. Leave empty to hide the link.</p>
+<h3>QR destination</h3><p class="note">Use this stable address for new QR codes. The source tag will distinguish QR openings when analytics is activated.</p><input readonly value="https://remal-offer-v2.vercel.app/?source=qr" aria-label="QR destination"><p class="note">Analytics is not active yet. Existing scans cannot be reconstructed.</p><h3>Hotel social media</h3><label class="note">Hotel Instagram URL<input type="url" dir="ltr" id="instagram-url" placeholder="https://www.instagram.com/remal.hotel/"></label><p class="note">Shown in the guest page footer. Leave empty to hide the link.</p>
 <div class="row"><button class="btn solid" id="ss">Save settings</button></div>
       <p class="msg" id="sm"></p>
       <p class="note">Each offer uses its section’s contacts. Empty section fields use the reception contact; if neither is available, guests are asked to contact reception.</p>
