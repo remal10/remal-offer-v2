@@ -127,12 +127,12 @@
           <select id="bg" style="flex:1"><option value="">No badge</option><option value="new">New</option><option value="signature">Signature</option><option value="popular">Guest favourite</option><option value="limited">Limited time</option><option value="exclusive">Exclusive</option></select>
           <input id="op" placeholder="Old price (shown struck through)" style="flex:1">
         </div>
-        <label class="note">Valid until (optional: the offer disappears after this date)<input id="vu" type="date"></label>
+        <label class="note">Valid until (optional)<input id="vu" type="date"></label><p class="note" id="date-warning" aria-live="polite">No expiry date.</p>
         <input id="fl" type="file" accept="image/*,video/*">
         <label><input id="pb" type="checkbox" checked style="width:auto"> Published</label>
         <label><input id="ft" type="checkbox" style="width:auto"> Feature on the home page highlights</label>
         <div id="tl" class="f" style="padding:0;margin:0;border:0"></div>
-        <div class="row"><button class="btn solid">Save</button><button type="button" class="sm" id="cn">Cancel</button></div>
+        <div class="row"><button class="btn solid">Save</button><button type="button" class="sm" id="preview-offer">Preview as guest</button><button type="button" class="sm" id="cn">Cancel</button></div>
         <p class="msg" id="fmsg"></p>
       </form>
       <div id="ls"></div>

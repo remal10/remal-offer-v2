@@ -134,8 +134,9 @@ async function load(){
   if(first){first=false;heroStart(h.data||[])}
   paint()
 }
-const closeM=()=>{$('#md').classList.remove('on');document.body.style.overflow=''};
+const closeM=()=>{$('#md').classList.remove('on');document.body.style.overflow='';if(previewMedia){URL.revokeObjectURL(previewMedia);previewMedia=null}if(previewFocus){previewFocus.focus();previewFocus=null}};
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&$('#md').classList.contains('on')){closeM();return}
   const card=e.target.closest('.card');
   if(card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();card.click()}
 });
@@ -257,13 +258,43 @@ $('#sc').onclick=async e=>{
 };
 
 /* offers */
+
+const offerStatus=o=>!o.published?'Draft':alive(o)?'Published':'Expired';
+const readableDate=value=>{if(!value)return 'No expiry date';return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(new Date(value+'T12:00:00'))};
+const readOfferForm=()=>{
+  const translations={};
+  LG.forEach(l=>{const title=$('#ti_'+l).value.trim(),tagline=$('#tg_'+l).value.trim(),description=$('#td_'+l).value.trim();if(title||tagline||description)translations[l]={title,tagline,description}});
+  return {category:$('#ct').value,price:$('#pr').value.trim()||null,sort_order:+$('#so').value||0,published:$('#pb').checked,featured:$('#ft').checked,badge:$('#bg').value||null,old_price:$('#op').value.trim()||null,valid_until:$('#vu').value||null,translations}
+};
+function dateFeedback(){
+  const date=$('#vu').value,expired=date&&date<today();
+  $('#date-warning').textContent=expired?'This date has passed ('+readableDate(date)+'). Guests will not see this offer. Choose a future date or clear the field.':date?'Visible through '+readableDate(date)+'.':'No expiry date.';
+  $('#date-warning').style.color=expired?'#ffb4a8':'';
+}
+$('#vu').addEventListener('input',dateFeedback);
+$('#pb').addEventListener('change',dateFeedback);
+let previewMedia=null,previewFocus=null;
+function previewOffer(o,file){
+  if(previewMedia){URL.revokeObjectURL(previewMedia);previewMedia=null}
+  const x=tr(o),t=L[lang],b=BD[o.badge];
+  let media=md(o);
+  if(file){previewMedia=URL.createObjectURL(file);media=file.type.startsWith('video/')?`<video src='${esc(previewMedia)}' controls muted playsinline></video>`:`<img src='${esc(previewMedia)}' alt=''>`}
+  $('#bx').innerHTML=`<button class='x' id='xc2' aria-label='Close preview'>✕</button><div class='m'>${media}</div><div class='t'><p class='note'>Guest preview · ${offerStatus(o)} · ${readableDate(o.valid_until)}</p>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description||'')}</p>${cta(x,t,o.category)}<button class='btn' id='xc'>${esc(t.close)}</button></div>`;
+  previewFocus=document.activeElement;$('#md').classList.add('on');document.body.style.overflow='hidden';$('#xc2').focus()
+}
+$('#preview-offer').onclick=()=>{
+  const o=readOfferForm();if(!Object.values(o.translations).some(x=>x.title)){$('#fmsg').textContent='Add at least one title before previewing.';return}
+  previewOffer({...editOld,...o},$('#fl').files[0])
+};
+
 async function staffLoad(){
   const {data}=await S.from('offers').select('*').order('featured',{ascending:false}).order('sort_order').order('created_at',{ascending:false});
   staffList=data||[];
-  $('#ls').innerHTML=staffList.map(o=>`<div class='li'><span>${o.published?'':'🚫 '}${o.featured?'★ ':''}<b>${esc(tr2(o))}</b> · ${esc(o.category)} ${esc(o.price||'')}${o.badge?' · '+esc(o.badge):''}${o.valid_until?' · until '+esc(o.valid_until):''}</span><span><button class='sm' data-e='${o.id}'>Edit</button> <button class='sm' data-d='${o.id}'>Delete</button></span></div>`).join('')||`<p class='note'>No offers yet.</p>`
+  $('#ls').innerHTML=staffList.map(o=>`<div class='li'><span><span class='sm' style='display:inline-block;color:${offerStatus(o)==='Published'?'#b9dfad':offerStatus(o)==='Expired'?'#ffb4a8':'#f3dc8f'}'>${offerStatus(o)}</span> ${o.featured?'★ ':''}<b>${esc(tr2(o))}</b><br><span class='note'>${esc(o.category)} · ${esc(o.price||'')} · ${readableDate(o.valid_until)}</span></span><span class='row'><button class='sm' data-preview='${o.id}'>Preview</button><button class='sm' data-e='${o.id}'>Edit</button><button class='sm' data-d='${o.id}'>Delete</button></span></div>`).join('')||`<p class='note'>No offers yet.</p>`
 }
 $('#ls').onclick=async e=>{
   const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.preview){previewOffer(staffList.find(o=>o.id===b.dataset.preview));return}
   if(b.dataset.e){
     const o=staffList.find(x=>x.id===b.dataset.e);
     editId=o.id;editOld=o;
@@ -271,7 +302,7 @@ $('#ls').onclick=async e=>{
     $('#ft').checked=!!o.featured;$('#bg').value=o.badge||'';$('#op').value=o.old_price||'';$('#vu').value=o.valid_until||'';
     LG.forEach(l=>{const x=(o.translations||{})[l]||{};$('#ti_'+l).value=x.title||'';$('#tg_'+l).value=x.tagline||'';$('#td_'+l).value=x.description||''});
     $('#fmsg').textContent='Editing (leave the file empty to keep the current media).';
-    $('#fm').scrollIntoView()
+    dateFeedback();$('#fm').scrollIntoView()
   }
   if(b.dataset.d&&confirm('Delete this offer?')){
     const o=staffList.find(x=>x.id===b.dataset.d);
@@ -280,15 +311,14 @@ $('#ls').onclick=async e=>{
     staffLoad()
   }
 };
-$('#cn').onclick=()=>{editId=editOld=null;$('#fm').reset();$('#fmsg').textContent=''};
+$('#cn').onclick=()=>{editId=editOld=null;$('#fm').reset();dateFeedback();$('#fmsg').textContent=''};
 $('#fm').onsubmit=async e=>{
   e.preventDefault();
   const m=$('#fmsg');m.textContent='Saving…';
   try{
-    const tt={};
-    LG.forEach(l=>{const t=$('#ti_'+l).value.trim(),g=$('#tg_'+l).value.trim(),d=$('#td_'+l).value.trim();if(t||g||d)tt[l]={title:t,tagline:g,description:d}});
-    if(!Object.keys(tt).length){m.textContent='Add at least one title.';return}
-    const r={category:$('#ct').value,price:$('#pr').value.trim()||null,sort_order:+$('#so').value||0,published:$('#pb').checked,featured:$('#ft').checked,badge:$('#bg').value||null,old_price:$('#op').value.trim()||null,valid_until:$('#vu').value||null,translations:tt};
+    const r=readOfferForm();
+    if(!Object.values(r.translations).some(x=>x.title)){m.textContent='Add at least one title.';return}
+    if(r.published&&r.valid_until&&r.valid_until<today()){dateFeedback();m.textContent='Cannot publish an expired offer. Correct the end date, clear it, or uncheck Published to save as a draft.';$('#vu').focus();return}
     const f=$('#fl').files[0];
     if(f){
       const p=Date.now()+'-'+f.name.replace(/[^a-z0-9.]+/gi,'_');
@@ -298,7 +328,7 @@ $('#fm').onsubmit=async e=>{
     }
     const q=editId?S.from('offers').update(r).eq('id',editId):S.from('offers').insert(r);
     const {error}=await q;if(error)throw error;
-    editId=editOld=null;$('#fm').reset();m.textContent='Saved ✓';staffLoad()
+    editId=editOld=null;$('#fm').reset();dateFeedback();m.textContent='Saved ✓';staffLoad();load()
   }catch(x){m.textContent=x.message}
 };
 
