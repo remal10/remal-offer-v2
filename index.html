@@ -58,6 +58,7 @@
       <h2 class="gold" data-i="offers"></h2>
     </div>
     <section id="announcements" aria-label="Hotel announcements" hidden></section>
+    <div id="guest-load-status" hidden role="status"><p id="guest-load-message"></p><button type="button" class="sm" id="guest-retry" aria-label="Retry">↻</button></div>
     <div id="ti"></div>
     <div id="pl"></div>
     <div class="grid" id="gr"></div>
@@ -74,7 +75,7 @@
   </footer>
 </div>
 
-<div class="modal" id="md"><div class="box" id="bx"></div></div>
+<div class="modal" id="md" role="dialog" aria-modal="true" aria-label="Offer details"><div class="box" id="bx"></div></div>
 
 <div class="ib" id="ib">
   <img src="/icon.svg" alt="">

@@ -40,7 +40,7 @@ const prep=f=>f.type.startsWith('image/')&&f.type!=='image/gif'?new Promise(r=>{
 async function up(p,f){const b=await prep(f),r=await S.storage.from('offers').upload(p,b,{contentType:b.type||f.type});if(r.error)throw r.error}
 
 /* ---------- promotional helpers ---------- */
-const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const today=()=>{const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Dubai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),get=t=>p.find(x=>x.type===t).value;return get('year')+'-'+get('month')+'-'+get('day')};
 const left=o=>o.valid_until?Math.round((new Date(o.valid_until+'T00:00:00')-new Date(today()+'T00:00:00'))/864e5):null;
 const alive=o=>{const n=left(o);return n===null||n>=0};
 const urg=(o,t)=>{const n=left(o);return n===null||n>7?'':`<span class='ug'><b></b>${esc(n<=0?t.last:t.ends.replace('{n}',n))}</span>`};
@@ -121,19 +121,33 @@ function paint(){
   document.querySelectorAll('.rv:not(.in)').forEach(n=>io?io.observe(n):n.classList.add('in'));
   slow()
 }
+let loadingGuest=false;
 async function load(){
-  const [a,b,h,c]=await Promise.all([
-    S.from('offers').select('*').eq('published',true).order('featured',{ascending:false}).order('sort_order').order('created_at',{ascending:false}),
-    S.from('sections').select('*'),
-    S.from('hero_images').select('*').eq('active',true).order('sort_order').order('created_at'),
-    S.from('site_settings').select('*')
-  ]);
-  offers=a.data||[];
-  secs={};(b.data||[]).forEach(r=>{secs[r.category]=r});
-  cfg={};(c.data||[]).forEach(r=>{cfg[r.key]=r.value});
-  if(first){first=false;heroStart(h.data||[])}
-  paint()
+  if(loadingGuest)return;loadingGuest=true;
+  try{
+    const queries=[
+      S.from('offers').select('*').eq('published',true).order('featured',{ascending:false}).order('sort_order').order('created_at',{ascending:false}),
+      S.from('sections').select('*'),
+      S.from('hero_images').select('*').eq('active',true).order('sort_order').order('created_at'),
+      S.from('site_settings').select('*')
+    ];
+    const results=await Promise.allSettled(queries),read=i=>results[i].status==='fulfilled'&&!results[i].value.error?results[i].value.data:null;
+    const a=read(0),b=read(1),h=read(2),c=read(3);
+    if(a!==null)offers=a||[];
+    if(b!==null){secs={};(b||[]).forEach(r=>secs[r.category]=r)}
+    if(c!==null){cfg={};(c||[]).forEach(r=>cfg[r.key]=r.value)}
+    if(first){first=false;heroStart(h||[])}
+    paint();
+    const failed=results.some(r=>r.status==='rejected'||r.value.error);
+    $('#guest-load-status').hidden=!failed;
+    $('#guest-load-message').textContent=({en:'Some content could not be refreshed. Please try again.',fr:'Certains contenus n’ont pas pu être actualisés. Réessayez.',ar:'تعذر تحديث بعض المحتوى. يرجى المحاولة مرة أخرى.',hi:'कुछ सामग्री अपडेट नहीं हो सकी। कृपया दोबारा कोशिश करें।',zh:'部分内容未能刷新，请重试。'})[lang];
+  }finally{loadingGuest=false}
 }
+$('#guest-retry').onclick=()=>load();
+setInterval(()=>{if(!document.hidden&&!document.body.classList.contains('st')&&!$('#md').classList.contains('on'))load()},60000);
+addEventListener('online',()=>{if(!document.body.classList.contains('st'))load()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!document.body.classList.contains('st'))load()});
+
 const closeM=()=>{$('#md').classList.remove('on');document.body.style.overflow='';if(previewMedia){URL.revokeObjectURL(previewMedia);previewMedia=null}if(previewFocus){previewFocus.focus();previewFocus=null}};
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&$('#md').classList.contains('on')){closeM();return}
@@ -145,9 +159,9 @@ document.addEventListener('click',e=>{
   if(l){lang=l.dataset.l;localStorage.setItem('lang',lang);document.body.classList.add('sk');dir();paint()}
   else if(c){location.hash=c.dataset.c==='all'?'offres':'s-'+c.dataset.c}
   else if(k){
-    const o=offers.find(x=>x.id===k.dataset.id),x=tr(o),t=L[lang],b=BD[o.badge];
-    $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description)}</p>${cta(x,t,o.category)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
-    $('#md').classList.add('on');document.body.style.overflow='hidden';slow()
+    const o=offers.find(x=>x.id===k.dataset.id);if(!o)return;const x=tr(o),t=L[lang],b=BD[o.badge];
+    $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description||'')}</p>${cta(x,t,o.category)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
+    previewFocus=k;$('#md').classList.add('on');document.body.style.overflow='hidden';$('#xc2').focus();slow()
   }
   else if(['md','xc','xc2'].includes(e.target.id))closeM()
 });
@@ -288,7 +302,8 @@ $('#preview-offer').onclick=()=>{
 };
 
 async function staffLoad(){
-  const {data}=await S.from('offers').select('*').order('featured',{ascending:false}).order('sort_order').order('created_at',{ascending:false});
+  const {data,error}=await S.from('offers').select('*').order('featured',{ascending:false}).order('sort_order').order('created_at',{ascending:false});
+  if(error){$('#fmsg').textContent=error.message;return}
   staffList=data||[];
   $('#ls').innerHTML=staffList.map(o=>`<div class='li'><span><span class='sm' style='display:inline-block;color:${offerStatus(o)==='Published'?'#b9dfad':offerStatus(o)==='Expired'?'#ffb4a8':'#f3dc8f'}'>${offerStatus(o)}</span> ${o.featured?'★ ':''}<b>${esc(tr2(o))}</b><br><span class='note'>${esc(o.category)} · ${esc(o.price||'')} · ${readableDate(o.valid_until)}</span></span><span class='row'><button class='sm' data-preview='${o.id}'>Preview</button><button class='sm' data-e='${o.id}'>Edit</button><button class='sm' data-d='${o.id}'>Delete</button></span></div>`).join('')||`<p class='note'>No offers yet.</p>`
 }
@@ -306,15 +321,17 @@ $('#ls').onclick=async e=>{
   }
   if(b.dataset.d&&confirm('Delete this offer?')){
     const o=staffList.find(x=>x.id===b.dataset.d);
-    await S.from('offers').delete().eq('id',o.id);
+    const {error}=await S.from('offers').delete().eq('id',o.id);if(error){$('#fmsg').textContent=error.message;return}
     if(o.media_path)await S.storage.from('offers').remove([o.media_path]);
-    staffLoad()
+    staffLoad();load()
   }
 };
 $('#cn').onclick=()=>{editId=editOld=null;$('#fm').reset();dateFeedback();$('#fmsg').textContent=''};
+let savingOffer=false;
 $('#fm').onsubmit=async e=>{
-  e.preventDefault();
-  const m=$('#fmsg');m.textContent='Saving…';
+  e.preventDefault();if(savingOffer)return;savingOffer=true;
+  const button=$('#fm').querySelector('button:not([type])'),m=$('#fmsg');if(button)button.disabled=true;m.textContent='Saving…';
+  let uploaded=null,saved=false;const previousMedia=editOld&&editOld.media_path;
   try{
     const r=readOfferForm();
     if(!Object.values(r.translations).some(x=>x.title)){m.textContent='Add at least one title.';return}
@@ -322,19 +339,21 @@ $('#fm').onsubmit=async e=>{
     const f=$('#fl').files[0];
     if(f){
       const p=Date.now()+'-'+f.name.replace(/[^a-z0-9.]+/gi,'_');
-      await up(p,f);
+      await up(p,f);uploaded=p;
       r.media_path=p;r.media_type=f.type.startsWith('video')?'video':'image';
-      if(editOld&&editOld.media_path)await S.storage.from('offers').remove([editOld.media_path])
     }
     const q=editId?S.from('offers').update(r).eq('id',editId):S.from('offers').insert(r);
-    const {error}=await q;if(error)throw error;
+    const {error}=await q;if(error)throw error;saved=true;
+    if(uploaded&&previousMedia)S.storage.from('offers').remove([previousMedia]).catch(()=>{});
     editId=editOld=null;$('#fm').reset();dateFeedback();m.textContent='Saved ✓';staffLoad();load()
-  }catch(x){m.textContent=x.message}
+  }catch(x){m.textContent=x.message;if(uploaded&&!saved)S.storage.from('offers').remove([uploaded]).catch(()=>{})}
+  finally{savingOffer=false;if(button)button.disabled=false}
 };
 
 /* reservation contacts */
 async function cfgLoad(){
-  const {data}=await S.from('site_settings').select('*'),m={};
+  const {data,error}=await S.from('site_settings').select('*'),m={};
+  if(error){$('#sm').textContent=error.message;return}
   (data||[]).forEach(r=>{m[r.key]=r.value});
   cfg=m;
   $('#instagram-url').value=m.instagram===undefined?defaultInstagram:m.instagram;
