@@ -65,13 +65,14 @@ const standalone=matchMedia('(display-mode: standalone)').matches||navigator.sta
 ios=/iphone|ipad|ipod/i.test(navigator.userAgent),
 lay=[$('#b0'),$('#b1')],
 pg=k=>document.querySelectorAll('#pg [data-slide]').forEach((s,j)=>{s.classList.toggle('a',j===k);s.setAttribute('aria-pressed',String(j===k))});
-let heroRequest=0;
+let heroRequest=0,heroListeners=null;
 function heroShow(u,k){
   const request=++heroRequest,i=new Image();
-  i.onload=()=>{if(request!==heroRequest)return;const n=1-cur,e=lay[n];e.className='bg';void e.offsetWidth;e.style.backgroundImage='url('+JSON.stringify(u)+')';e.className='bg on k'+(kv++%4);lay[cur].classList.remove('on');cur=n;pg(k)};
+  i.onload=()=>{if(request!==heroRequest)return;const n=1-cur,e=lay[n];e.className='bg';void e.offsetWidth;e.style.backgroundImage='url('+JSON.stringify(u)+')';const row=hrows.find(r=>mu(r.media_path)===u);e.style.setProperty('--mobile-crop',row?(cfg['hero_crop_'+row.id]||'center'):'center');e.className='bg on k'+(kv++%4);lay[cur].classList.remove('on');cur=n;pg(k)};
   i.src=u
 }
 function heroStart(h){
+  if(heroListeners)heroListeners.abort();heroListeners=new AbortController();const heroSignal=heroListeners.signal;
   const l=h.length?h.map(x=>mu(x.media_path)):[HERO0],reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let k=parseInt(localStorage.getItem('hi')),paused=reduced.matches;
   k=isNaN(k)?0:(k+1)%l.length;
@@ -89,9 +90,9 @@ function heroStart(h){
     else if(b.classList.contains('hero-pause')){paused=!paused;controls()}
     schedule()
   };
-  document.addEventListener('visibilitychange',schedule);
-  reduced.addEventListener('change',e=>{paused=e.matches;controls();schedule()});
-  document.addEventListener('click',e=>{if(e.target.closest('[data-l]'))controls()})
+  document.addEventListener('visibilitychange',schedule,{signal:heroSignal});
+  reduced.addEventListener('change',e=>{paused=e.matches;controls();schedule()},{signal:heroSignal});
+  document.addEventListener('click',e=>{if(e.target.closest('[data-l]'))controls()},{signal:heroSignal})
 }
 
 const defaultInstagram='https://www.instagram.com/remal.hotel/';
@@ -137,6 +138,7 @@ async function load(){
     if(a!==null)offers=a||[];
     if(b!==null){secs={};(b||[]).forEach(r=>secs[r.category]=r)}
     if(c!==null){cfg={};(c||[]).forEach(r=>cfg[r.key]=r.value)}
+    if(h!==null)hrows=h||[];
     if(first){first=false;heroStart(h||[])}
     paint();
     const failed=results.some(r=>r.status==='rejected'||r.value.error);
@@ -160,6 +162,7 @@ document.addEventListener('click',e=>{
   if(l){lang=l.dataset.l;localStorage.setItem('lang',lang);document.body.classList.add('sk');dir();paint()}
   else if(c){location.hash=c.dataset.c==='all'?'offres':'s-'+c.dataset.c}
   else if(k){
+    $('#bx').dir=lang==='ar'?'rtl':'ltr';$('#bx').lang=lang;
     const o=offers.find(x=>x.id===k.dataset.id);if(!o)return;const x=tr(o),t=L[lang],b=BD[o.badge];
     $('#bx').innerHTML=`<button class='x' id='xc2'>✕</button><div class='m'>${md(o)}</div><div class='t'>${b?`<span class='bd'>${esc(t[b])}</span>`:''}<span class='eb'>${esc(t[o.category])}</span><h3 class='gold'>${esc(x.title)}</h3>${x.tagline?`<div class='tg2'>${esc(x.tagline)}</div>`:''}<div class='ul'></div>${pr(o)}${urg(o,t)}<p>${esc(x.description||'')}</p>${offerFacts(x)}${cta(x,t,o.category)}<div><button class='btn' id='xc'>${esc(t.close)}</button></div></div>`;
     previewFocus=k;$('#md').classList.add('on');document.body.style.overflow='hidden';$('#xc2').focus();slow()
@@ -222,7 +225,7 @@ async function heroLoad(){
   const {data}=await S.from('hero_images').select('*').order('sort_order').order('created_at');
   hrows=data||[];
   $('#hc2').textContent=hrows.length+' / 10 images';
-  $('#hg').innerHTML=hrows.map(h=>`<div class='hi${h.active?'':' off'}'><img src='${esc(mu(h.media_path))}' alt=''><div class='row'><button class='sm' data-ht='${h.id}'>${h.active?'Hide':'Show'}</button><button class='sm' data-hd='${h.id}'>Delete</button></div></div>`).join('')||`<p class='note'>No images yet: the default photo is used.</p>`
+  $('#hg').innerHTML=hrows.map(h=>`<div class='hi${h.active?'':' off'}' draggable='true' data-hero-drag='${h.id}'><img src='${esc(mu(h.media_path))}' alt=''><div class='row'><button class='sm' data-ht='${h.id}'>${h.active?'Hide':'Show'}</button><button class='sm' data-hd='${h.id}'>Delete</button><button class='sm' data-hero-up='${h.id}' aria-label='Move photo earlier'>↑</button><button class='sm' data-hero-down='${h.id}' aria-label='Move photo later'>↓</button><label class='note'>Mobile crop<select data-hero-crop='${h.id}'><option value='center' ${cfg['hero_crop_'+h.id]==='center'?'selected':''}>Center</option><option value='top' ${cfg['hero_crop_'+h.id]==='top'?'selected':''}>Top</option><option value='bottom' ${cfg['hero_crop_'+h.id]==='bottom'?'selected':''}>Bottom</option></select></label></div></div>`).join('')||`<p class='note'>No images yet: the default photo is used.</p>`
 }
 $('#hf').onchange=async e=>{
   const fs=[...e.target.files],m=$('#hmsg'),room=10-hrows.length;
@@ -299,7 +302,7 @@ function previewOffer(o,file){
 }
 $('#preview-offer').onclick=()=>{
   const o=readOfferForm();if(!Object.values(o.translations).some(x=>x.title)){$('#fmsg').textContent='Add at least one title before previewing.';return}
-  previewOffer({...editOld,...o},$('#fl').files[0])
+  const savedLang=lang;lang=$('#offer-preview-language').value;try{previewOffer({...editOld,...o},$('#fl').files[0]);$('#bx').dir=lang==='ar'?'rtl':'ltr';$('#bx').lang=lang}finally{lang=savedLang}
 };
 
 async function staffLoad(){
@@ -508,5 +511,29 @@ function paintOverview(){
   const counts={Published:0,Draft:0,Expired:0};staffList.forEach(o=>counts[offerStatus(o)]++);
   $('#dashboard-summary').innerHTML=Object.entries(counts).map(([k,v])=>'<div class="summary-metric"><b>'+v+'</b><span>'+k+' offers</span></div>').join('')+'<div class="summary-metric"><b>'+annRows.filter(a=>a.published&&(!a.end||a.end>=today())).length+'</b><span>Active / scheduled announcements</span></div>'
 }
+
+/* Photo ordering: drag and drop, with touch/keyboard button alternatives. */
+let heroDragged=null,heroReordering=false;
+async function moveHero(id,targetIndex){
+  if(heroReordering)return;
+  const from=hrows.findIndex(h=>h.id===id);if(from<0||targetIndex<0||targetIndex>=hrows.length||from===targetIndex)return;
+  heroReordering=true;const order=[...hrows],[item]=order.splice(from,1);order.splice(targetIndex,0,item);
+  try{
+    const results=await Promise.all(order.map((h,i)=>S.from('hero_images').update({sort_order:i}).eq('id',h.id)));
+    const failed=results.find(r=>r.error);if(failed)throw failed.error;
+    $('#hmsg').textContent='Photo order saved ✓';await heroLoad();first=true;await load()
+  }catch(e){$('#hmsg').textContent=e.message||'Could not reorder photos.';await heroLoad()}finally{heroReordering=false}
+}
+$('#hg').addEventListener('dragstart',e=>{const item=e.target.closest('[data-hero-drag]');if(item){heroDragged=item.dataset.heroDrag;e.dataTransfer.setData('text/plain',heroDragged)}});
+$('#hg').addEventListener('dragover',e=>{if(heroDragged&&e.target.closest('[data-hero-drag]'))e.preventDefault()});
+$('#hg').addEventListener('drop',e=>{e.preventDefault();const target=e.target.closest('[data-hero-drag]');if(target&&heroDragged)moveHero(heroDragged,hrows.findIndex(h=>h.id===target.dataset.heroDrag));heroDragged=null});
+$('#hg').addEventListener('dragend',()=>heroDragged=null);
+$('#hg').addEventListener('click',e=>{const up=e.target.closest('[data-hero-up]'),down=e.target.closest('[data-hero-down]');if(up)moveHero(up.dataset.heroUp,hrows.findIndex(h=>h.id===up.dataset.heroUp)-1);if(down)moveHero(down.dataset.heroDown,hrows.findIndex(h=>h.id===down.dataset.heroDown)+1)});
+$('#hg').addEventListener('change',async e=>{
+  const id=e.target.dataset.heroCrop;if(!id)return;
+  const value=e.target.value;if(!['top','center','bottom'].includes(value))return;e.target.disabled=true;
+  try{const key='hero_crop_'+id,{error}=await S.from('site_settings').upsert({key,value,updated_at:new Date().toISOString()},{onConflict:'key'});if(error)throw error;cfg[key]=value;$('#hmsg').textContent='Mobile crop saved ✓';first=true;await load()}catch(x){$('#hmsg').textContent=x.message}finally{e.target.disabled=false}
+});
+$('#offer-preview-language').innerHTML=LG.map(l=>'<option value="'+l+'">'+LN[l]+'</option>').join('');
 
 dir();load();route();addEventListener('hashchange',route);

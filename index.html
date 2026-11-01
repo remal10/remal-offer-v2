@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="https://remar-hotel-discovery.lovable.app/remal-logo.jpg">
 <link rel="icon" href="/icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;500&family=Inter:wght@300;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css"><style>.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-bottom:1.5rem}.summary-metric{display:grid;padding:1rem;background:#15130f;border:1px solid #d4af3733;border-radius:10px}.summary-metric b{font-size:1.8rem;color:var(--g2)}.summary-metric span{font-size:.8rem;color:var(--mut)}.booking-fields{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin:1rem 0}.booking-fields label{font-size:.8rem;color:var(--mut)}.offer-facts{margin:1rem 0}.offer-facts div{padding:.5rem 0;border-bottom:1px solid #d4af3722}.offer-facts dt{font-size:.7rem;color:var(--gold)}.offer-facts dd{white-space:pre-line;font-size:.9rem;overflow-wrap:anywhere}a[aria-disabled=true]{opacity:.5}</style>
+<link rel="stylesheet" href="/styles.css"><style>.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-bottom:1.5rem}.summary-metric{display:grid;padding:1rem;background:#15130f;border:1px solid #d4af3733;border-radius:10px}.summary-metric b{font-size:1.8rem;color:var(--g2)}.summary-metric span{font-size:.8rem;color:var(--mut)}.booking-fields{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin:1rem 0}.booking-fields label{font-size:.8rem;color:var(--mut)}.offer-facts{margin:1rem 0}.offer-facts div{padding:.5rem 0;border-bottom:1px solid #d4af3722}.offer-facts dt{font-size:.7rem;color:var(--gold)}.offer-facts dd{white-space:pre-line;font-size:.9rem;overflow-wrap:anywhere}a[aria-disabled=true]{opacity:.5}@media(max-width:700px){.bg{background-position:center var(--mobile-crop,center)}}[data-hero-drag]{cursor:grab}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -135,7 +135,7 @@
         <label><input id="pb" type="checkbox" checked style="width:auto"> Published</label>
         <label><input id="ft" type="checkbox" style="width:auto"> Feature on the home page highlights</label>
         <div id="tl" class="f" style="padding:0;margin:0;border:0"></div>
-        <div class="row"><button class="btn solid">Save</button><button type="button" class="sm" id="preview-offer">Preview as guest</button><button type="button" class="sm" id="cn">Cancel</button></div>
+        <div class="row"><button class="btn solid">Save</button><label class="note">Preview language<select id="offer-preview-language"></select></label><button type="button" class="sm" id="preview-offer">Preview as guest</button><button type="button" class="sm" id="cn">Cancel</button></div>
         <p class="msg" id="fmsg"></p>
       </form>
       <div id="ls"></div>
